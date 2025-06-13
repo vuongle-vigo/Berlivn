@@ -1,0 +1,20 @@
+.image-container {
+  position: relative;
+  display: inline-block;
+}
+
+.background-image {
+  width: 256px; /* Khớp với w-64 (64 * 4 = 256px) */
+  height: 256px; /* Khớp với h-64 */
+  object-fit: cover;
+  border: 1px solid #d1d5db; /* Khớp với border-gray-300 */
+  border-radius: 0.5rem; /* Khớp với rounded-lg */
+}
+
+.number {
+  position: absolute;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}

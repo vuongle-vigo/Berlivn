@@ -1,70 +1,51 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BusbarSupport from "@/app/busbar-support/tabs/BusbarSupport";
 import OtherTag from "@/app/busbar-support/tabs/OtherTag";
 import CalcForce from "@/app/busbar-support/tabs/CalcForce";
 import Products from "@/app/busbar-support/tabs/Products";
+
 export default function BusbarSupportPage() {
   const [activeTab, setActiveTab] = useState("Busbar Support");
 
   return (
     <div className="min-h-screen p-4">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-3xl font-bold text-red-500">BERLIVN</h1>
+        <h1 className="text-3xl font-bold text-destructive">BERLIVN</h1>
         <div className="flex items-center gap-4">
-          <span className="text-gray-700 font-medium">User: LE DINH DUONG</span>
-          <button
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          <span className="text-foreground font-medium">User: LE DINH DUONG</span>
+          <Button
+            variant="destructive"
             onClick={() => alert("Logout functionality not implemented yet.")}
           >
             Logout
-          </button>
+          </Button>
         </div>
       </div>
-      {/* Tabs */}
-      <div className="flex gap-4 mb-4 border-b">
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "Busbar Support" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
-          }`}
-          onClick={() => setActiveTab("Busbar Support")}
-        >
-          Busbar Support
-        </button>
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "Products" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
-          }`}
-          onClick={() => setActiveTab("Products")}
-        >
-          Products
-        </button>
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "Calc Force" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
-          }`}
-          onClick={() => setActiveTab("Calc Force")}
-        >
-          Calc Force
-        </button>
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "Other Tag" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-500"
-          }`}
-          onClick={() => setActiveTab("Other Tag")}
-        >
-          Other Tag
-        </button>
-      </div>
 
-      {/* Tab Content */}
-      <div>
-        {activeTab === "Busbar Support" && <BusbarSupport />}
-        {activeTab === "Products" && <Products />}
-        {activeTab === "Calc Force" && <CalcForce />}
-        {activeTab === "Other Tag" && <OtherTag />}
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="Busbar Support">Busbar Support</TabsTrigger>
+          <TabsTrigger value="Products">Products</TabsTrigger>
+          <TabsTrigger value="Calc Force">Calc Force</TabsTrigger>
+          <TabsTrigger value="Other Tag">Other Tag</TabsTrigger>
+        </TabsList>
+        <TabsContent value="Busbar Support">
+          <BusbarSupport />
+        </TabsContent>
+        <TabsContent value="Products">
+          <Products />
+        </TabsContent>
+        <TabsContent value="Calc Force">
+          <CalcForce />
+        </TabsContent>
+        <TabsContent value="Other Tag">
+          <OtherTag />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

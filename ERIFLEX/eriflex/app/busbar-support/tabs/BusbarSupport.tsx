@@ -79,7 +79,7 @@ export default function BusbarSupport() {
     setInputValue(cleanedValue);
 
     // Convert to number for icc state
-    const numericValue = Math.min(Math.max(Number(cleanedValue), 12), 120);
+    const numericValue = Math.min(Math.max(Number(cleanedValue), 12), 200);
     setIcc(numericValue || 0);
   };
 
@@ -114,6 +114,7 @@ export default function BusbarSupport() {
           "80",
           "100",
           "125",
+          "150",
         ];
         break;
       case "10":
@@ -127,6 +128,7 @@ export default function BusbarSupport() {
           "80",
           "100",
           "120",
+          "150",
           "160",
           "200",
         ];

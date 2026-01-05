@@ -1,9 +1,24 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { fakeAuth, FakeUser } from '@/lib/fakeAuth';
+
+interface User {
+  id: string;
+  email?: string;
+}
+
+interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'admin' | 'user';
+  is_active: boolean;
+  searches_count: number;
+  max_searches: number;
+  created_at: string;
+}
 
 interface AuthContextType {
-  user: FakeUser | null;
-  profile: FakeUser | null;
+  user: User | null;
+  profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
@@ -17,79 +32,51 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = 'fake_auth_user';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<FakeUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [remainingSearches, setRemainingSearches] = useState(0);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setRemainingSearches(fakeAuth.getRemainingSearches(parsedUser.id));
-      } catch (error) {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-      }
-    }
     setLoading(false);
   }, []);
 
   const refreshProfile = async () => {
-    if (user) {
-      const users = fakeAuth.getUsers();
-      const updatedUser = users.find(u => u.id === user.id);
-      if (updatedUser) {
-        setUser(updatedUser);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
-        setRemainingSearches(fakeAuth.getRemainingSearches(updatedUser.id));
-      }
-    }
+    // TODO: Implement
   };
 
   const signIn = async (email: string, password: string) => {
-    const { user: loggedInUser, error } = await fakeAuth.login(email, password);
-
-    if (error) {
-      return { error };
-    }
-
-    if (loggedInUser) {
-      setUser(loggedInUser);
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(loggedInUser));
-      setRemainingSearches(fakeAuth.getRemainingSearches(loggedInUser.id));
-    }
-
+    // TODO: Implement
     return { error: null };
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await fakeAuth.register(email, password, fullName);
-    return { error };
+    // TODO: Implement
+    return { error: null };
   };
 
   const signOut = async () => {
     setUser(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    setRemainingSearches(0);
+    setProfile(null);
   };
 
   const incrementSearch = async () => {
-    if (!user) return;
-
-    fakeAuth.incrementSearch(user.id);
-    setRemainingSearches(fakeAuth.getRemainingSearches(user.id));
+    // TODO: Implement
   };
 
-  const isAdmin = user?.role === 'admin';
-  const canSearch = user ? user.is_active && fakeAuth.canSearch(user.id) : false;
+  const isAdmin = profile?.role === 'admin';
+  
+  const remainingSearches = profile 
+    ? Math.max(0, profile.max_searches - profile.searches_count) 
+    : 0;
+
+  const canSearch = profile 
+    ? profile.is_active && (isAdmin || remainingSearches > 0) 
+    : false;
 
   const value = {
     user,
-    profile: user,
+    profile,
     loading,
     signIn,
     signUp,

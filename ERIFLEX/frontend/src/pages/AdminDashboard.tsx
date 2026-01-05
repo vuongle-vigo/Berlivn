@@ -21,34 +21,23 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { listUsers as apiListUsers, createUser as apiCreateUser, updateUser as apiUpdateUser, deleteUser as apiDeleteUser } from '@/api/api';
-
-// local admin user type (fields used in this page)
-interface AdminUser {
-  id: string;
-  email: string;
-  full_name?: string;
-  role: 'admin' | 'user';
-  daily_search_limit?: number;
-  is_active?: boolean;
-  created_at?: string;
-}
+import UserDetailDialog from '@/components/UserDetailDialog';
+import { getAllUsers, updateUserAdmin, deleteUserProfile } from '@/lib/auth';
+import { Eye } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { isAdmin, refreshProfile, user: authUser } = useAuth();
-  const [users, setUsers] = useState<AdminUser[]>([]);
-
+  const { isAdmin, refreshProfile } = useAuth();
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [viewingUser, setViewingUser] = useState<any>(null);
 
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    full_name: '',
-    role: 'user' as 'admin' | 'user',
+    role: 'user',
     daily_search_limit: 10,
     is_active: true,
   });
@@ -61,37 +50,10 @@ export default function AdminDashboard() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    setError('');
     try {
-      const res = await apiListUsers(authUser?.token);
-      if (!res.ok) throw new Error(res.data?.message || 'Lỗi khi tải danh sách user');
-      const list: AdminUser[] = Array.isArray(res.data) ? res.data : res.data?.users || [];
-      setUsers(list);
-    } catch (err: any) {
-      setError(err.message || 'Lỗi khi tải users');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    try {
-      const res = await apiCreateUser({
-        email: formData.email,
-        password: formData.password,
-        role: formData.role,
-      }, authUser?.token);
-      if (!res.ok) throw new Error(res.data?.message || 'Tạo user thất bại');
-      // optionally update profile metadata via separate endpoint if backend supports additional fields
-      setSuccess('Tạo user thành công');
-      setDialogOpen(false);
-      resetForm();
-      await fetchUsers();
+      const { data, error } = await getAllUsers();
+      if (error) throw error;
+      setUsers(data || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -108,13 +70,14 @@ export default function AdminDashboard() {
     setLoading(true);
 
     try {
-      const res = await apiUpdateUser(editingUser.id, {
-        full_name: formData.full_name,
+      const { error } = await updateUserAdmin(editingUser.id, {
         role: formData.role,
         daily_search_limit: formData.daily_search_limit,
         is_active: formData.is_active,
-      }, authUser?.token);
-      if (!res.ok) throw new Error(res.data?.message || 'Cập nhật user thất bại');
+      });
+
+      if (error) throw error;
+
       setSuccess('Cập nhật user thành công');
       setDialogOpen(false);
       setEditingUser(null);
@@ -129,14 +92,15 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Bạn có chắc muốn xóa user này?')) return;
+    if (!confirm('Bạn có chắc muốn xóa user này? Thao tác này không thể hoàn tác.')) return;
 
     setError('');
     setSuccess('');
 
     try {
-      const res = await apiDeleteUser(userId, authUser?.token);
-      if (!res.ok) throw new Error(res.data?.message || 'Xóa user thất bại');
+      const { error } = await deleteUserProfile(userId);
+      if (error) throw error;
+
       setSuccess('Xóa user thành công');
       await fetchUsers();
     } catch (err: any) {
@@ -144,24 +108,23 @@ export default function AdminDashboard() {
     }
   };
 
-  const openEditDialog = (user: AdminUser) => {
+  const openEditDialog = (user: any) => {
     setEditingUser(user);
     setFormData({
-      email: user.email,
-      password: '',
-      full_name: user.full_name || '',
-      role: user.role,
-      daily_search_limit: user.daily_search_limit,
-      is_active: user.is_active,
+      role: user.role || 'user',
+      daily_search_limit: user.daily_search_limit || 10,
+      is_active: user.is_active !== false,
     });
     setDialogOpen(true);
   };
 
+  const openDetailDialog = (user: any) => {
+    setViewingUser(user);
+    setDetailDialogOpen(true);
+  };
+
   const resetForm = () => {
     setFormData({
-      email: '',
-      password: '',
-      full_name: '',
       role: 'user',
       daily_search_limit: 10,
       is_active: true,
@@ -182,116 +145,12 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-2xl font-bold text-red-600">Quản lý User</CardTitle>
-          <Dialog open={dialogOpen} onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) {
-              resetForm();
-              setError('');
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button>Thêm User Mới</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl w-full p-6 sm:p-8">
-              <DialogHeader>
-                <DialogTitle>{editingUser ? 'Chỉnh sửa User' : 'Thêm User Mới'}</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    disabled={!!editingUser}
-                    required
-                  />
-                </div>
-
-                {!editingUser && (
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Mật khẩu</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="full_name">Họ và tên</Label>
-                  <Input
-                    id="full_name"
-                    type="text"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Vai trò</Label>
-                  <Select value={formData.role} onValueChange={(value: 'admin' | 'user') => setFormData({ ...formData, role: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="daily_search_limit">Giới hạn tra cứu/ngày</Label>
-                  <Input
-                    id="daily_search_limit"
-                    type="number"
-                    min="0"
-                    value={formData.daily_search_limit}
-                    onChange={(e) => setFormData({ ...formData, daily_search_limit: parseInt(e.target.value) })}
-                    required
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <Label htmlFor="is_active">Tài khoản hoạt động</Label>
-                </div>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Đang xử lý...' : editingUser ? 'Cập nhật' : 'Tạo User'}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Hủy
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
         </CardHeader>
         <CardContent>
           {success && (
-            <Alert className="mb-4">
+            <Alert className="mb-4 bg-green-50 text-green-900 border-green-200">
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
@@ -308,6 +167,7 @@ export default function AdminDashboard() {
                 <TableRow>
                   <TableHead>Email</TableHead>
                   <TableHead>Họ tên</TableHead>
+                  <TableHead>Công ty</TableHead>
                   <TableHead>Vai trò</TableHead>
                   <TableHead>Giới hạn/ngày</TableHead>
                   <TableHead>Trạng thái</TableHead>
@@ -318,21 +178,25 @@ export default function AdminDashboard() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
-                      Đang tải...
+                    <TableCell colSpan={8} className="text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        Đang tải...
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={8} className="text-center text-gray-500">
                       Chưa có user nào
                     </TableCell>
                   </TableRow>
                 ) : (
                   users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell className="font-medium">{user.email}</TableCell>
                       <TableCell>{user.full_name || '-'}</TableCell>
+                      <TableCell>{user.company?.name || '-'}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${
                           user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
@@ -340,7 +204,7 @@ export default function AdminDashboard() {
                           {user.role === 'admin' ? 'Admin' : 'User'}
                         </span>
                       </TableCell>
-                      <TableCell>{user.daily_search_limit}</TableCell>
+                      <TableCell>{user.daily_search_limit || 0}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${
                           user.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -348,9 +212,19 @@ export default function AdminDashboard() {
                           {user.is_active ? 'Hoạt động' : 'Tạm khóa'}
                         </span>
                       </TableCell>
-                      <TableCell>{new Date(user.created_at).toLocaleDateString('vi-VN')}</TableCell>
+                      <TableCell>
+                        {user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : '-'}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openDetailDialog(user)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Chi tiết
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
@@ -375,6 +249,96 @@ export default function AdminDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) {
+          resetForm();
+          setError('');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa User</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUser} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                value={editingUser?.email || ''}
+                disabled
+                className="bg-gray-100"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Họ và tên</Label>
+              <Input
+                value={editingUser?.full_name || ''}
+                disabled
+                className="bg-gray-100"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Vai trò</Label>
+              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="daily_search_limit">Giới hạn tra cứu/ngày</Label>
+              <Input
+                id="daily_search_limit"
+                type="number"
+                min="0"
+                value={formData.daily_search_limit}
+                onChange={(e) => setFormData({ ...formData, daily_search_limit: parseInt(e.target.value) || 0 })}
+                required
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="is_active"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4 rounded border-gray-300"
+              />
+              <Label htmlFor="is_active">Tài khoản hoạt động</Label>
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex gap-2">
+              <Button type="submit" disabled={loading} className="flex-1">
+                {loading ? 'Đang xử lý...' : 'Cập nhật'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                Hủy
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <UserDetailDialog
+        user={viewingUser}
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+      />
     </div>
   );
 }

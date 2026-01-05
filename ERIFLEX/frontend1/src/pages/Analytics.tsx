@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fakeAuth, DailyStats, UserActivity } from '@/lib/fakeAuth';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -12,9 +11,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { BarChart3, Users, Search, TrendingUp } from 'lucide-react';
+import { getAnalytics } from '@/api/api';
+
+// local types used by this page
+interface DailyStats {
+  date: string;
+  total_searches: number;
+  active_users: number;
+}
+interface UserActivity {
+  user_id: string;
+  user_name: string;
+  email: string;
+  total_searches: number;
+  last_active: string;
+}
 
 export default function Analytics() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user: authUser } = useAuth();
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
   const [totalStats, setTotalStats] = useState({
@@ -31,10 +45,24 @@ export default function Analytics() {
     }
   }, [isAdmin, timeRange]);
 
-  const loadAnalytics = () => {
-    setDailyStats(fakeAuth.getDailyStats(timeRange));
-    setUserActivity(fakeAuth.getUserActivity());
-    setTotalStats(fakeAuth.getTotalStats());
+  const loadAnalytics = async () => {
+    try {
+      const res = await getAnalytics(timeRange, authUser?.token);
+      if (!res.ok) {
+        return;
+      }
+      const data = res.data || {};
+      const ds: DailyStats[] = data.daily_stats || data.dailyStats || data.daily || [];
+      const ua: UserActivity[] = data.user_activity || data.userActivity || data.activity || [];
+      const ts = data.total_stats || data.totalStats || data.totals || {
+        totalUsers: 0, activeUsers: 0, totalSearches: 0, todaySearches: 0,
+      };
+      setDailyStats(ds);
+      setUserActivity(ua);
+      setTotalStats(ts);
+    } catch {
+      // ignore errors for now
+    }
   };
 
   if (!isAdmin) {
@@ -48,6 +76,7 @@ export default function Analytics() {
   }
 
   const maxSearches = Math.max(...dailyStats.map(s => s.total_searches), 1);
+  const maxUsers = Math.max(...dailyStats.map(s => s.active_users), 1);
 
   return (
     <div className="space-y-6">
@@ -150,31 +179,61 @@ export default function Analytics() {
           <CardTitle className="text-xl font-bold text-red-600">Biểu đồ tra cứu theo ngày</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm font-medium text-gray-600">
-              <span>Số lượt tra cứu</span>
-              <span>Max: {maxSearches}</span>
-            </div>
-            <div className="space-y-2">
-              {dailyStats.map((stat, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-gray-700 w-16 text-right">
-                    {stat.date}
-                  </span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full flex items-center justify-end pr-3 transition-all duration-500"
-                      style={{ width: `${(stat.total_searches / maxSearches) * 100}%` }}
-                    >
-                      {stat.total_searches > 0 && (
-                        <span className="text-white text-xs font-semibold">
-                          {stat.total_searches}
-                        </span>
-                      )}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm font-medium text-gray-600">
+                <span>Số lượt tra cứu</span>
+                <span>Max: {maxSearches}</span>
+              </div>
+              <div className="space-y-2">
+                {dailyStats.map((stat, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-700 w-16 text-right">
+                      {stat.date}
+                    </span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full flex items-center justify-end pr-3 transition-all duration-500"
+                        style={{ width: `${(stat.total_searches / maxSearches) * 100}%` }}
+                      >
+                        {stat.total_searches > 0 && (
+                          <span className="text-white text-xs font-semibold">
+                            {stat.total_searches}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t pt-6 space-y-3">
+              <div className="flex items-center justify-between text-sm font-medium text-gray-600">
+                <span>Người dùng hoạt động</span>
+                <span>Max: {maxUsers}</span>
+              </div>
+              <div className="space-y-2">
+                {dailyStats.map((stat, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-700 w-16 text-right">
+                      {stat.date}
+                    </span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full flex items-center justify-end pr-3 transition-all duration-500"
+                        style={{ width: `${(stat.active_users / maxUsers) * 100}%` }}
+                      >
+                        {stat.active_users > 0 && (
+                          <span className="text-white text-xs font-semibold">
+                            {stat.active_users}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>

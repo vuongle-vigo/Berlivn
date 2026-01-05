@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Zap, TrendingUp, AlertCircle } from "lucide-react";
+import { calcExcel } from '@/api/api';
 
 export default function ForceCalculator() {
   const [formData, setFormData] = useState({
@@ -22,7 +23,7 @@ export default function ForceCalculator() {
     setError(null);
   };
 
-  const calculateForce = () => {
+  const calculateForce = async () => {
     const { width, thickness, busbarsPerPhase, angle, distancePhasePhase, icc, force, poles } = formData;
 
     if (!width || !thickness || !busbarsPerPhase || !distancePhasePhase || !icc || !force) {
@@ -33,24 +34,48 @@ export default function ForceCalculator() {
     setIsCalculating(true);
     setError(null);
 
-    setTimeout(() => {
-      const w = parseFloat(width);
-      const t = parseFloat(thickness);
-      const b = parseFloat(busbarsPerPhase);
-      const a = parseFloat(distancePhasePhase);
-      const iccVal = parseFloat(icc);
-      const forceVal = parseFloat(force);
-      const angleVal = parseFloat(angle);
-      const polesVal = parseFloat(poles);
+    try {
+      const payload = {
+        W: parseInt(width, 10),
+        T: parseInt(thickness, 10),
+        B: parseInt(busbarsPerPhase, 10),
+        Angle: parseInt(angle, 10),
+        a: parseInt(distancePhasePhase, 10),
+        Icc: parseInt(icc, 10),
+        Force: parseInt(force, 10),
+        NbrePhase: parseInt(poles, 10),
+      };
 
-      const mockCalculation =
-        Math.sqrt((w * t * b * forceVal) / (iccVal * a)) *
-        (1 + angleVal / 90) *
-        (polesVal / 3);
+      const res = await calcExcel(payload);
 
-      setResult(Math.round(mockCalculation * 100));
+      // Nếu backend trả 500 => tham số sai
+      if (res.status === 500) {
+        setError('Invalid input parameters for calculation');
+        setResult(null);
+        return;
+      }
+
+      if (!res.ok) {
+        const msg = res.data?.message || 'Calculation failed';
+        setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+        setResult(null);
+      } else {
+        // backend may return shape: { L: 209 } or { result: ... } or { Result: ... }
+        const value = res.data?.L ?? res.data?.result ?? res.data?.Result ?? null;
+        if (value == null) {
+          setError('Invalid response from calculation API');
+          setResult(null);
+        } else {
+          const numeric = Number(value);
+          setResult(Number.isFinite(numeric) ? Math.round(numeric) : null);
+        }
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Error during calculation');
+      setResult(null);
+    } finally {
       setIsCalculating(false);
-    }, 800);
+    }
   };
 
   const fields = [
@@ -187,30 +212,16 @@ export default function ForceCalculator() {
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               Calculation Complete
             </h3>
-            <div className="text-sm text-gray-600 mb-4">
-              Maximum Support Spacing (L)
-            </div>
+            <div className="text-sm text-gray-600 mb-1">Maximum Support Spacing</div>
             <div className="text-5xl font-bold text-green-900 mb-2">
-              {result}
-              <span className="text-2xl ml-2">mm</span>
-            </div>
-            <div className="inline-block bg-green-200 text-green-900 px-4 py-2 rounded-full text-sm font-semibold mt-4">
-              ✓ Within acceptable limits
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/80 p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">Safety Factor</div>
-              <div className="text-lg font-bold text-gray-900">1.5x</div>
-            </div>
-            <div className="bg-white/80 p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">Stress Level</div>
-              <div className="text-lg font-bold text-gray-900">Normal</div>
-            </div>
-            <div className="bg-white/80 p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">Compliance</div>
-              <div className="text-lg font-bold text-gray-900">IEC 61439</div>
+              {result !== null ? (
+                <>
+                  L = {result}
+                  <span className="text-2xl ml-2">mm</span>
+                </>
+              ) : (
+                <>No result</>
+              )}
             </div>
           </div>
         </div>

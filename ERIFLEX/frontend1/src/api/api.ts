@@ -19,11 +19,11 @@ export async function login(email: string, password: string) {
   return { ok: res.ok, status: res.status, data };
 }
 
-export async function register(payload: Record<string, any>) {
+export async function register(email: string, password: string) {
   const res = await fetch(`${API_BASE}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ email, password }),
   });
   const data = await safeJson(res);
   return { ok: res.ok, status: res.status, data };
@@ -131,21 +131,20 @@ export async function listUsers(token?: string) {
   }
 }
 
-export async function getUser(userId: string, token?: string) {
-  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}`;
+export async function getUser(userId: number, token?: string) {
+  const url = `${API_BASE}/api/users/${encodeURIComponent(String(userId))}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
     const res = await fetch(url, { method: 'GET', headers });
     const data = await safeJson(res);
-    console.log(data);
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
     return { ok: false, status: 0, data: null, error: err };
   }
 }
 
-export async function createUser(payload: Record<string, any>, token?: string) {
+export async function createUser(payload: { email: string; password: string; role?: string }, token?: string) {
   const url = `${API_BASE}/api/users`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -158,8 +157,8 @@ export async function createUser(payload: Record<string, any>, token?: string) {
   }
 }
 
-export async function updateUser(userId: string, payload: Record<string, any>, token?: string) {
-  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}`;
+export async function updateUser(userId: number | string, payload: Record<string, any>, token?: string) {
+  const url = `${API_BASE}/api/users/${encodeURIComponent(String(userId))}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
@@ -171,8 +170,8 @@ export async function updateUser(userId: string, payload: Record<string, any>, t
   }
 }
 
-export async function deleteUser(userId: string, token?: string) {
-  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}`;
+export async function deleteUser(userId: number | string, token?: string) {
+  const url = `${API_BASE}/api/users/${encodeURIComponent(String(userId))}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {

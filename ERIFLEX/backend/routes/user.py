@@ -11,18 +11,69 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 class CreateUserRequest(BaseModel):
 	email: EmailStr
 	password: str
+	company_name: str
+	registration_number: Optional[str] = None
+	activities: str
+	activities_other: Optional[str] = None
+	employee_count: str
+	company_phone: str
+	first_name: str
+	last_name: str
+	job_position: str
+	professional_address: str
+	postal_code: str
+	city: str
+	country: str = "Vietnam"
+	direct_phone: str
+	mobile_phone: str
 	role: Optional[str] = "user"
 
 class UpdateUserRequest(BaseModel):
 	email: Optional[EmailStr] = None
 	password: Optional[str] = None
+	company_name: Optional[str] = None
+	registration_number: Optional[str] = None
+	activities: Optional[str] = None
+	activities_other: Optional[str] = None
+	employee_count: Optional[str] = None
+	company_phone: Optional[str] = None
+	first_name: Optional[str] = None
+	last_name: Optional[str] = None
+	job_position: Optional[str] = None
+	professional_address: Optional[str] = None
+	postal_code: Optional[str] = None
+	city: Optional[str] = None
+	country: Optional[str] = None
+	direct_phone: Optional[str] = None
+	mobile_phone: Optional[str] = None
 	role: Optional[str] = None
+	is_active: Optional[int] = None
 
 class UserResponse(BaseModel):
-	id: int
+	id: str
 	email: EmailStr
 	role: str
+	is_active: int
 	created_at: Optional[str] = None
+	
+	# Company fields
+	company_name: str
+	registration_number: Optional[str] = None
+	activities: str
+	activities_other: Optional[str] = None
+	employee_count: str
+	company_phone: str
+
+	# Profile fields
+	first_name: str
+	last_name: str
+	job_position: str
+	professional_address: str
+	postal_code: str
+	city: str
+	country: str
+	direct_phone: str
+	mobile_phone: str
 
 @router.get("/", response_model=List[UserResponse])
 def list_users():
@@ -37,11 +88,12 @@ def list_users():
 		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 @router.get("/{user_id}", response_model=UserResponse)
-def get_user(user_id: int):
+def get_user(user_id: str):
 	try:
 		if not hasattr(user_model, "get_user_by_id"):
 			raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="get_user_by_id not implemented in services.user_model")
 		user = user_model.get_user_by_id(user_id)
+		print(user)
 		if not user:
 			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 		return user
@@ -53,7 +105,8 @@ def get_user(user_id: int):
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(req: CreateUserRequest):
 	try:
-		user = register_user(req.email, req.password, req.role)
+		# register_user now accepts a dict of all fields
+		user = register_user(req.dict())
 		return user
 	except ValueError as e:
 		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -63,21 +116,25 @@ def create_user(req: CreateUserRequest):
 		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 @router.put("/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, req: UpdateUserRequest):
+def update_user(user_id: str, req: UpdateUserRequest):
 	try:
 		if not hasattr(user_model, "update_user"):
 			raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="update_user not implemented in services.user_model")
-		updated = user_model.update_user(user_id, req.dict(exclude_unset=True))
+		
+		updated = user_model.update_user(user_id, **req.dict(exclude_unset=True))
 		if not updated:
 			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found or not updated")
-		return updated
+		
+		# Fetch the updated user to return
+		user = user_model.get_user_by_id(user_id)
+		return user
 	except HTTPException:
 		raise
 	except Exception:
 		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int):
+def delete_user(user_id: str):
 	try:
 		if not hasattr(user_model, "delete_user"):
 			raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="delete_user not implemented in services.user_model")

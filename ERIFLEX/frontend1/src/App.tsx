@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Calculator, Zap, Package, Menu, X, Users, LogOut, User, BarChart3, UserCircle } from "lucide-react";
+import { useState } from "react";
+import { Calculator, Zap, Package, Menu, X, Users, LogOut, User, BarChart3 } from "lucide-react";
 import { useAuth } from "./contexts/AuthContext";
 import Login from "./pages/Login";
 import BusbarCalculator from "./pages/BusbarCalculator";
@@ -7,43 +7,19 @@ import ForceCalculator from "./pages/ForceCalculator";
 import Products from "./pages/Products";
 import AdminDashboard from "./pages/AdminDashboard";
 import Analytics from "./pages/Analytics";
-import UserProfile from "./pages/UserProfile";
 
 function App() {
-  const { user: contextUser, profile, signOut: contextSignOut, isAdmin: contextIsAdmin, loading } = useAuth();
+  const { user, profile, signOut, isAdmin, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("busbar");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
-  // Fallback state for user from localStorage
-  const [localUser, setLocalUser] = useState<any>(() => {
-    try {
-      const stored = localStorage.getItem('user');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  // Combine context user and local user
-  const user = contextUser || localUser;
-  const isAdmin = contextIsAdmin || (user?.role === 'admin');
-
-  const handleSignOut = () => {
-    localStorage.removeItem('user');
-    setLocalUser(null);
-    if (contextSignOut) contextSignOut();
-    window.location.href = '/';
-  };
 
   const tabs = [
     { id: "busbar", label: "Busbar Design", icon: Calculator },
     { id: "force", label: "Force Analysis", icon: Zap },
-    { id: "profile", label: "Profile", icon: UserCircle },
+    { id: "products", label: "Products", icon: Package },
   ];
 
   if (isAdmin) {
-    // Insert Products before Profile for admins to maintain order
-    tabs.splice(2, 0, { id: "products", label: "Products", icon: Package });
     tabs.push({ id: "analytics", label: "Analytics", icon: BarChart3 });
     tabs.push({ id: "admin", label: "User Management", icon: Users });
   }
@@ -76,20 +52,13 @@ function App() {
                 <h1 className="text-xl font-bold text-gray-900">
                   Electrical Engineering Suite
                 </h1>
-                <p className="text-xs text-gray-500">
-                  Professional Busbar Design & Analysis
-                </p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <div className="hidden md:flex items-center gap-2 text-sm">
                 <User className="w-4 h-4 text-gray-600" />
-                <span className="text-gray-700">
-                  {profile?.first_name 
-                    ? `${profile.first_name} ${profile.last_name}` 
-                    : (profile?.full_name || user.email)}
-                </span>
+                <span className="text-gray-700">{profile?.full_name || user.email}</span>
                 {isAdmin && (
                   <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">
                     Admin
@@ -98,7 +67,7 @@ function App() {
               </div>
 
               <button
-                onClick={handleSignOut}
+                onClick={signOut}
                 className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />
@@ -143,11 +112,7 @@ function App() {
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2 text-sm">
                   <User className="w-4 h-4 text-gray-600" />
-                  <span className="text-gray-700">
-                    {profile?.first_name 
-                      ? `${profile.first_name} ${profile.last_name}` 
-                      : (profile?.full_name || user.email)}
-                  </span>
+                  <span className="text-gray-700">{profile?.full_name || user.email}</span>
                   {isAdmin && (
                     <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">
                       Admin
@@ -178,7 +143,7 @@ function App() {
               })}
 
               <button
-                onClick={handleSignOut}
+                onClick={signOut}
                 className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg font-medium text-sm text-gray-600 hover:bg-gray-100"
               >
                 <LogOut className="w-5 h-5" />
@@ -193,8 +158,7 @@ function App() {
         <div className="transition-all duration-300 ease-in-out">
           {activeTab === "busbar" && <BusbarCalculator />}
           {activeTab === "force" && <ForceCalculator />}
-          {activeTab === "products" && isAdmin && <Products />}
-          {activeTab === "profile" && <UserProfile />}
+          {activeTab === "products" && <Products />}
           {activeTab === "analytics" && isAdmin && <Analytics />}
           {activeTab === "admin" && isAdmin && <AdminDashboard />}
         </div>

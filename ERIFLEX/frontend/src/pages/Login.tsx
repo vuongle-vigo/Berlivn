@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Zap } from 'lucide-react';
+import RegistrationForm from '@/components/RegistrationForm';
+import { login } from '../api/api';
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -13,50 +15,33 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Try to get setUser from context, but don't rely on it
+  const auth = useAuth() as any;
+  const setUser = auth?.setUser;
 
-  // protect useAuth so the page won't crash if AuthProvider is not mounted
-  let signIn: (email: string, password: string) => Promise<{ error: any }> = async () => ({ error: 'No auth' });
-  let signUp: (email: string, password: string) => Promise<{ error: any }> = async () => ({ error: 'No auth' });
-  let authAvailable = true;
-  try {
-    const auth = useAuth();
-    signIn = auth.signIn;
-    signUp = auth.signUp;
-  } catch (e) {
-    authAvailable = false;
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      if (!authAvailable) {
-        setError('AuthProvider chưa được cấu hình - hãy bọc App bằng AuthProvider');
-        setLoading(false);
-        return;
-      }
-      if (isSignUp) {
-        // AuthContext.signUp no longer accepts full name; call with email & password
-        const { error } = await signUp(email, password);
-        if (error) {
-          setError(typeof error === 'string' ? error : (error?.message || 'Đăng ký thất bại'));
+      const res = await login(email, password);
+      if (res.ok) {
+        // Persist user session to localStorage
+        localStorage.setItem('user', JSON.stringify(res.data));
+
+        if (typeof setUser === 'function') {
+          setUser(res.data);
         } else {
-          setError('');
-          alert('Đăng ký thành công! Vui lòng đăng nhập.');
-          setIsSignUp(false);
-          setEmail('');
-          setPassword('');
+          // Fallback: force reload to pick up localStorage in App.tsx
+          window.location.href = '/';
         }
       } else {
-        const { error } = await signIn(email, password);
-        if (error) {
-          setError('Email hoặc mật khẩu không đúng');
-        }
+        setError(res.data?.detail || 'Email hoặc mật khẩu không đúng');
       }
     } catch (err: any) {
-      setError(err.message || 'Đã có lỗi xảy ra');
+      setError('Đã có lỗi xảy ra');
     } finally {
       setLoading(false);
     }
@@ -64,7 +49,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 p-4">
-      <Card className="w-full max-w-md">
+      <Card className={`w-full ${isSignUp ? 'max-w-4xl' : 'max-w-md'}`}>
         <CardHeader className="space-y-2">
           <div className="flex items-center justify-center mb-4">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
@@ -79,67 +64,94 @@ export default function Login() {
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Mật khẩu</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Đang xử lý...
-                </div>
-              ) : (
-                isSignUp ? 'Đăng ký' : 'Đăng nhập'
-              )}
-            </Button>
-
-            <div className="text-center text-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
+          {isSignUp ? (
+            <>
+              <RegistrationForm
+                onSuccess={(data) => {
+                  setIsSignUp(false);
+                  setError('');
+                  if (data?.email) setEmail(data.email);
+                }}
+                onCancel={() => {
+                  setIsSignUp(false);
                   setError('');
                 }}
-                className="text-blue-600 hover:underline"
+              />
+              <div className="text-center text-sm mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(false);
+                    setError('');
+                  }}
+                  className="text-blue-600 hover:underline"
+                  disabled={loading}
+                >
+                  Đã có tài khoản? Đăng nhập
+                </button>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Mật khẩu</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
               >
-                {isSignUp
-                  ? 'Đã có tài khoản? Đăng nhập'
-                  : 'Chưa có tài khoản? Đăng ký'}
-              </button>
-            </div>
-          </form>
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Đang xử lý...
+                  </div>
+                ) : (
+                  'Đăng nhập'
+                )}
+              </Button>
+
+              <div className="text-center text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(true);
+                    setError('');
+                  }}
+                  className="text-blue-600 hover:underline"
+                >
+                  Chưa có tài khoản? Đăng ký
+                </button>
+              </div>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

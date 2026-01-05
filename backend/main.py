@@ -7,6 +7,7 @@ from models.user import init_user_table  # sửa tại đây
 
 origins = [
     "http://localhost:5173",
+    "http://103.90.224.132",
     "https://yourdomain.com",
 ]
 

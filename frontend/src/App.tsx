@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Calculator, Zap, Package, Menu, X, Users, LogOut, User, BarChart3, UserCircle } from "lucide-react";
 import { useAuth } from "./contexts/AuthContext";
+import { getUser } from "./api/api";
 import Login from "./pages/Login";
 import BusbarCalculator from "./pages/BusbarCalculator";
 import ForceCalculator from "./pages/ForceCalculator";
@@ -13,6 +14,7 @@ function App() {
   const { user: contextUser, profile, signOut: contextSignOut, isAdmin: contextIsAdmin, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("busbar");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchStats, setSearchStats] = useState({ limit: 20, count: 0 });
   
   // Fallback state for user from localStorage
   const [localUser, setLocalUser] = useState<any>(() => {
@@ -27,6 +29,22 @@ function App() {
   // Combine context user and local user
   const user = contextUser || localUser;
   const isAdmin = contextIsAdmin || (user?.role === 'admin');
+
+  const fetchSearchStats = useCallback(async () => {
+    if (user?.id && !isAdmin) {
+      const res = await getUser(user.id);
+      if (res.ok && res.data) {
+        setSearchStats({
+          limit: res.data.daily_search_limit || 20,
+          count: res.data.search_count || 0
+        });
+      }
+    }
+  }, [user, isAdmin]);
+
+  useEffect(() => {
+    fetchSearchStats();
+  }, [fetchSearchStats, activeTab]);
 
   const handleSignOut = () => {
     localStorage.removeItem('user');
@@ -90,9 +108,13 @@ function App() {
                     ? `${profile.first_name} ${profile.last_name}` 
                     : (profile?.full_name || user.email)}
                 </span>
-                {isAdmin && (
+                {isAdmin ? (
                   <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">
                     Admin
+                  </span>
+                ) : (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
+                    Searches: {Math.max(0, searchStats.limit - searchStats.count)}/{searchStats.limit}
                   </span>
                 )}
               </div>
@@ -191,7 +213,13 @@ function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="transition-all duration-300 ease-in-out">
-          {activeTab === "busbar" && <BusbarCalculator />}
+          {activeTab === "busbar" && (
+            <BusbarCalculator 
+              onSearchComplete={fetchSearchStats} 
+              currentUser={user}
+              isCurrentAdmin={isAdmin}
+            />
+          )}
           {activeTab === "force" && <ForceCalculator />}
           {activeTab === "products" && isAdmin && <Products />}
           {activeTab === "profile" && <UserProfile />}

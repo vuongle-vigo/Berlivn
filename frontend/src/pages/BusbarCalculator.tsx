@@ -1,6 +1,7 @@
 import axios from "axios";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { incrementUserSearch, getUser } from "@/api/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -19,8 +20,22 @@ import {
 } from "@/components/ui/table";
 import BusbarCanvas from "@/components/BusbarCanvas";
 
-export default function BusbarCalculator() {
-  const { canSearch, remainingSearches, incrementSearch, isAdmin } = useAuth();
+interface BusbarCalculatorProps {
+  onSearchComplete?: () => void;
+  currentUser?: any;
+  isCurrentAdmin?: boolean;
+}
+
+export default function BusbarCalculator({ onSearchComplete, currentUser, isCurrentAdmin }: BusbarCalculatorProps) {
+  const { user: authUser, isAdmin: authIsAdmin } = useAuth();
+  
+  // Prioritize props from App.tsx which handles local storage fallback
+  const user = currentUser || authUser;
+  const isAdmin = isCurrentAdmin !== undefined ? isCurrentAdmin : authIsAdmin;
+
+  const [remainingSearches, setRemainingSearches] = useState<number>(0);
+  const [canSearch, setCanSearch] = useState<boolean>(true);
+
   const [perPhase, setPerPhase] = useState("1 Busbar");
   const [thickness, setThickness] = useState("2");
   const [widthOptions, setWidthOptions] = useState(["12"]);
@@ -43,6 +58,24 @@ export default function BusbarCalculator() {
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [inputValue, setInputValue] = useState("12");
+
+  useEffect(() => {
+    const fetchUserLimit = async () => {
+      if (user?.id && !isAdmin) {
+        const res = await getUser(user.id);
+        if (res.ok && res.data) {
+          const limit = res.data.daily_search_limit || 20;
+          const count = res.data.search_count || 0;
+          const remaining = Math.max(0, limit - count);
+          setRemainingSearches(remaining);
+          setCanSearch(remaining > 0);
+        }
+      } else if (isAdmin) {
+        setCanSearch(true);
+      }
+    };
+    fetchUserLimit();
+  }, [user, isAdmin]);
 
   const handleQuantityChange = (id: string, value: string) => {
     setQuantities((prev) => ({ ...prev, [id]: value }));
@@ -113,8 +146,18 @@ export default function BusbarCalculator() {
 
     setLoading(true);
     try {
-      if (!isAdmin) {
-        await incrementSearch();
+      if (!isAdmin && user?.id) {
+        const res = await incrementUserSearch(user.id);
+        if (res.ok && res.data) {
+          setRemainingSearches(res.data.remaining);
+          setCanSearch(res.data.allowed);
+          if (onSearchComplete) onSearchComplete();
+          if (!res.data.allowed) {
+             alert("Bạn đã hết lượt tra cứu trong ngày.");
+             setLoading(false);
+             return;
+          }
+        }
       }
 
       let calculatedIpk = 0;

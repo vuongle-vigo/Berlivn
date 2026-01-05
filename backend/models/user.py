@@ -1,5 +1,6 @@
 from typing import Optional, Dict, Any, List
 import uuid
+from datetime import datetime
 from database.database import Database
 
 db = Database()
@@ -27,6 +28,9 @@ CREATE TABLE IF NOT EXISTS users (
   mobile_phone TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user',
   is_active INTEGER DEFAULT 1,
+  daily_search_limit INTEGER DEFAULT 20,
+  search_count INTEGER DEFAULT 0,
+  last_search_date TEXT,
   last_login_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now')),
@@ -60,7 +64,8 @@ def create_user(
 	registration_number: Optional[str] = None,
 	activities_other: Optional[str] = None,
 	country: str = "Vietnam",
-	role: str = "user"
+	role: str = "user",
+	daily_search_limit: int = 20
 ) -> str:
 	"""Chèn user mới, trả về id (UUID)."""
 	user_id = str(uuid.uuid4())
@@ -69,17 +74,48 @@ def create_user(
 			id, email, password_hash, company_name, activities, employee_count, 
 			company_phone, first_name, last_name, job_position, professional_address, 
 			postal_code, city, direct_phone, mobile_phone, registration_number, 
-			activities_other, country, role
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+			activities_other, country, role, daily_search_limit
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 	"""
 	params = (
 		user_id, email, password_hash, company_name, activities, employee_count,
 		company_phone, first_name, last_name, job_position, professional_address,
 		postal_code, city, direct_phone, mobile_phone, registration_number,
-		activities_other, country, role
+		activities_other, country, role, daily_search_limit
 	)
 	db.execute(sql, params, commit=True)
 	return user_id
+
+def check_and_increment_search(user_id: str) -> Dict[str, Any]:
+	"""
+	Kiểm tra và tăng số lượt search. Reset nếu sang ngày mới.
+	Trả về dict: {allowed: bool, remaining: int, limit: int}
+	"""
+	row = db.fetch_one("SELECT daily_search_limit, search_count, last_search_date FROM users WHERE id = ?;", (user_id,))
+	if not row:
+		return {"allowed": False, "remaining": 0, "limit": 0}
+	
+	limit = row["daily_search_limit"] if row["daily_search_limit"] is not None else 20
+	count = row["search_count"] if row["search_count"] is not None else 0
+	last_date = row["last_search_date"]
+	
+	today = datetime.now().strftime("%Y-%m-%d")
+	
+	# Reset count if new day
+	if last_date != today:
+		count = 0
+		
+	if count >= limit:
+		return {"allowed": False, "remaining": 0, "limit": limit}
+	
+	new_count = count + 1
+	db.execute(
+		"UPDATE users SET search_count = ?, last_search_date = ? WHERE id = ?;", 
+		(new_count, today, user_id), 
+		commit=True
+	)
+	
+	return {"allowed": True, "remaining": limit - new_count, "limit": limit}
 
 def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
 	return db.fetch_one("SELECT * FROM users WHERE id = ?;", (user_id,))
@@ -111,4 +147,4 @@ def delete_user(user_id: str) -> bool:
 	return row is None
 
 def list_users(limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-	return db.fetch_all("SELECT id, email, first_name, last_name, company_name, role, created_at, is_active FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?;", (limit, offset))
+	return db.fetch_all("SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?;", (limit, offset))

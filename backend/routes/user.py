@@ -48,6 +48,7 @@ class UpdateUserRequest(BaseModel):
 	mobile_phone: Optional[str] = None
 	role: Optional[str] = None
 	is_active: Optional[int] = None
+	daily_search_limit: Optional[int] = None
 
 class UserResponse(BaseModel):
 	id: str
@@ -55,6 +56,8 @@ class UserResponse(BaseModel):
 	role: str
 	is_active: int
 	created_at: Optional[str] = None
+	daily_search_limit: Optional[int] = 20
+	search_count: Optional[int] = 0
 	
 	# Company fields
 	company_name: str
@@ -142,6 +145,22 @@ def delete_user(user_id: str):
 		if not ok:
 			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 		return None
+	except HTTPException:
+		raise
+	except Exception:
+		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+@router.post("/{user_id}/increment_search")
+def increment_search(user_id: str):
+	try:
+		if not hasattr(user_model, "check_and_increment_search"):
+			raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="check_and_increment_search not implemented")
+		
+		result = user_model.check_and_increment_search(user_id)
+		if not result["allowed"]:
+			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Daily search limit reached")
+			
+		return result
 	except HTTPException:
 		raise
 	except Exception:

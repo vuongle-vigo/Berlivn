@@ -25,7 +25,7 @@ export default function ForceCalculator() {
   const calculateForce = () => {
     const { width, thickness, busbarsPerPhase, angle, distancePhasePhase, icc, force, poles } = formData;
 
-    if (!width || !thickness || !busbarsPerPhase || !distancePhasePhase || !icc || !force) {
+    if (!width || !thickness || !busbarsPerPhase || !angle || !distancePhasePhase || !icc || !force) {
       setError("Please fill in all required fields");
       return;
     }

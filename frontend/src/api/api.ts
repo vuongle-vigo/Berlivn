@@ -138,7 +138,6 @@ export async function getUser(userId: string, token?: string) {
   try {
     const res = await fetch(url, { method: 'GET', headers });
     const data = await safeJson(res);
-    console.log(data);
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
     return { ok: false, status: 0, data: null, error: err };
@@ -184,6 +183,19 @@ export async function deleteUser(userId: string, token?: string) {
     return { ok: false, status: 0, data: null, error: err };
   }
 }
+
+export async function incrementUserSearch(userId: string, token?: string) {
+  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}/increment_search`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    const res = await fetch(url, { method: 'POST', headers });
+    const data = await safeJson(res);
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    return { ok: false, status: 0, data: null, error: err };
+  }
+}
 // -------------------------------------------------
 
-export default { login, register, me, getAnalytics, queryBusbar, getImageBlobByPath, getFileLink, calcExcel, listUsers, getUser, createUser, updateUser, deleteUser, API_BASE };
+export default { login, register, me, getAnalytics, queryBusbar, getImageBlobByPath, getFileLink, calcExcel, listUsers, getUser, createUser, updateUser, deleteUser, incrementUserSearch, API_BASE };

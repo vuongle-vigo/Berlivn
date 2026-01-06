@@ -3,3 +3,4 @@ app.log
 data.db
 .env
 .DS_Store
+*.db

@@ -54,7 +54,7 @@ export async function getAnalytics(days: number, token?: string) {
 
 // ----------------- NEW API FUNCTIONS FOR Busbar -----------------
 export async function queryBusbar(payload: Record<string, any>) {
-  const url = `${API_BASE}/api/queryBusbar`;
+  const url = `${API_BASE}/queryBusbar`;
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -73,7 +73,7 @@ export async function queryBusbar(payload: Record<string, any>) {
  * Returns { ok, status, blob } where blob is a Blob when ok===true.
  */
 export async function getImageBlobByPath(path: string) {
-  const url = `${API_BASE}/api/getImage?path=${encodeURIComponent(path)}`;
+  const url = `${API_BASE}/getImage?path=${encodeURIComponent(path)}`;
   try {
     const res = await fetch(url);
     if (!res.ok) return { ok: false, status: res.status, blob: null };
@@ -88,7 +88,7 @@ export async function getImageBlobByPath(path: string) {
  * Build direct download URL for getFile endpoint.
  */
 export function getFileLink(filePath: string) {
-  return `${API_BASE}/api/getFile?path=${encodeURIComponent(filePath)}`;
+  return `${API_BASE}/getFile?path=${encodeURIComponent(filePath)}`;
 }
 
 // ----------------- NEW: calcExcel -----------------
@@ -102,7 +102,7 @@ export async function calcExcel(payload: {
   Force: number;
   NbrePhase: number;
 }) {
-  const url = `${API_BASE}/api/calcExcel`;
+  const url = `${API_BASE}/calcExcel`;
   try {
     const res = await fetch(url, {
       method: 'POST',
@@ -119,7 +119,7 @@ export async function calcExcel(payload: {
 
 // ----------------- USER CRUD API -----------------
 export async function listUsers(token?: string) {
-  const url = `${API_BASE}/api/users`;
+  const url = `${API_BASE}/users`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
@@ -132,7 +132,7 @@ export async function listUsers(token?: string) {
 }
 
 export async function getUser(userId: string, token?: string) {
-  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}`;
+  const url = `${API_BASE}/users/${encodeURIComponent(userId)}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
@@ -145,7 +145,7 @@ export async function getUser(userId: string, token?: string) {
 }
 
 export async function createUser(payload: Record<string, any>, token?: string) {
-  const url = `${API_BASE}/api/users`;
+  const url = `${API_BASE}/users`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
@@ -158,7 +158,7 @@ export async function createUser(payload: Record<string, any>, token?: string) {
 }
 
 export async function updateUser(userId: string, payload: Record<string, any>, token?: string) {
-  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}`;
+  const url = `${API_BASE}/users/${encodeURIComponent(userId)}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
@@ -171,7 +171,7 @@ export async function updateUser(userId: string, payload: Record<string, any>, t
 }
 
 export async function deleteUser(userId: string, token?: string) {
-  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}`;
+  const url = `${API_BASE}/users/${encodeURIComponent(userId)}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {
@@ -185,7 +185,7 @@ export async function deleteUser(userId: string, token?: string) {
 }
 
 export async function incrementUserSearch(userId: string, token?: string) {
-  const url = `${API_BASE}/api/users/${encodeURIComponent(userId)}/increment_search`;
+  const url = `${API_BASE}/users/${encodeURIComponent(userId)}/increment_search`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   try {

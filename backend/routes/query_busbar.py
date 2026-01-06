@@ -16,7 +16,7 @@ from services.query_busbar_service import (
 
 router = APIRouter()
 
-@router.post("/api/queryBusbar")
+@router.post("/queryBusbar")
 async def query_busbar(data: QueryBusbarRequest):
     try:
         products = query_busbar_service(data.dict())
@@ -25,7 +25,7 @@ async def query_busbar(data: QueryBusbarRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/calcExcel")
+@router.post("/calcExcel")
 async def calc_excel(data: CalcExcelRequest):
     try:
         L = calc_excel_service(data.dict())
@@ -33,7 +33,7 @@ async def calc_excel(data: CalcExcelRequest):
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/api/sendAspExcel")
+@router.get("/sendAspExcel")
 async def send_asp_excel(W: float, T: float, B: int, Angle: float, a: float, Icc: float, Force: float, poles: int):
     try:
         resp = send_asp_excel_service(W, T, B, Angle, a, Icc, Force, poles)
@@ -41,7 +41,7 @@ async def send_asp_excel(W: float, T: float, B: int, Angle: float, a: float, Icc
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/api/getComponents")
+@router.get("/getComponents")
 async def get_components(component_id: Optional[str] = None, nbphase: Optional[int] = None):
     try:
         components, component_list = get_components_service(component_id, nbphase)
@@ -51,7 +51,7 @@ async def get_components(component_id: Optional[str] = None, nbphase: Optional[i
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/updateComponent")
+@router.post("/updateComponent")
 async def update_component(component: ComponentInfo):
     try:
         ok = update_component_service(component.dict())
@@ -61,7 +61,7 @@ async def update_component(component: ComponentInfo):
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.delete("/api/deleteComponent")
+@router.delete("/deleteComponent")
 async def delete_component(payload: DeleteComponentRequest):
     try:
         ok = delete_component_service(payload.component_id, payload.nbphase)
@@ -71,7 +71,7 @@ async def delete_component(payload: DeleteComponentRequest):
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/api/createComponent")
+@router.post("/createComponent")
 async def create_component(component: ComponentInfo):
     try:
         ok = create_component_service(component.dict())
@@ -81,7 +81,7 @@ async def create_component(component: ComponentInfo):
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/api/getComponentsList")
+@router.get("/getComponentsList")
 async def get_components_list(component_id: str, nbphase: int):
     try:
         components = get_components_list_service(component_id, nbphase)
@@ -91,7 +91,7 @@ async def get_components_list(component_id: str, nbphase: int):
     except Exception:
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/api/getImage")
+@router.get("/getImage")
 async def get_image(path: str):
     file_path = path.lstrip("/")
     absolute_path = file_path if file_path.startswith("/") else file_path
@@ -101,28 +101,28 @@ async def get_image(path: str):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(absolute_path)
 
-@router.post("/api/uploadImages")
+@router.post("/uploadImages")
 async def upload_images(img1: UploadFile = File(None), img2: UploadFile = File(None), img3: UploadFile = File(None)):
     for img in (img1, img2, img3):
         if img:
             save_uploaded_file(img, "products")
     return {"message": "Images uploaded successfully"}
 
-@router.delete("/api/deleteImage")
+@router.delete("/deleteImage")
 async def delete_image(payload: ImagePath):
     ok = delete_path(payload.image_path)
     if ok:
         return {"message": "Image deleted successfully"}
     raise HTTPException(status_code=404, detail="Image not found")
 
-@router.get("/api/getFile")
+@router.get("/getFile")
 async def get_file(path: str):
     file_path = path.lstrip("/")
     if not __import__("os").path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path)
 
-@router.post("/api/uploadFiles")
+@router.post("/uploadFiles")
 async def upload_files(doc: UploadFile = File(None), two_d: UploadFile = File(None), three_d: UploadFile = File(None)):
     allowed_extensions = {'.pdf', '.doc', '.docx', '.stp', '.step'}
     for file, key in [(doc, 'doc'), (two_d, '2d'), (three_d, '3d')]:
@@ -137,7 +137,7 @@ async def upload_files(doc: UploadFile = File(None), two_d: UploadFile = File(No
             save_uploaded_file(file, "documents")
     return {"message": "Files uploaded successfully"}
 
-@router.delete("/api/deleteFile")
+@router.delete("/deleteFile")
 async def delete_file(payload: FilePath):
     ok = delete_path(payload.file_path)
     if ok:

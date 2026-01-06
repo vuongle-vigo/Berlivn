@@ -6,7 +6,7 @@ from typing import Optional, List, Dict, Any
 from models import user as user_model
 from services.auth_service import register_user, authenticate_user
 
-router = APIRouter(prefix="/api/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"])
 
 class CreateUserRequest(BaseModel):
 	email: EmailStr

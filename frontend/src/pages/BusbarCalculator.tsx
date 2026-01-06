@@ -1,7 +1,12 @@
-import axios from "axios";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { incrementUserSearch, getUser } from "@/api/api";
+import { 
+  incrementUserSearch, 
+  getUser, 
+  queryBusbar, 
+  getImageBlobByPath, 
+  getFileLink 
+} from "@/api/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -179,25 +184,34 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
       setSpaceBetweenPhases(calculatedA);
       setDistanceBetweenFixingPoints(calculatedB);
 
-      const response = await axios.post("http://127.0.0.1:8000/api/queryBusbar", {
-        perPhase,
-        thickness,
-        width,
-        poles,
-        shape,
-        icc,
-      });
-      setProducts(response.data.products);
-      if (response.data.products.length > 0) {
-        handleRowClick(response.data.products[0]);
+      try {
+        const response = await queryBusbar({
+          perPhase,
+          thickness,
+          width,
+          poles,
+          shape,
+          icc,
+        });
+        if (response.ok && response.data) {
+          setProducts(response.data.products || []);
+          if (response.data.products && response.data.products.length > 0) {
+            handleRowClick(response.data.products[0]);
+          }
+        } else {
+          console.error("Failed to query products", response.status);
+        }
+      } catch (error) {
+        console.error("Error querying busbar products:", error);
+        setLoading(false);
+        return;
+      } 
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    } finally {
-      setLoading(false);
-    }
   };
-
   const handleRowClick = async (product: any) => {
     setSelectedProduct(product);
 
@@ -216,8 +230,6 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
     const remoteImg1Url = `https://eriflex-configurator.nvent.com/eriflex/design/photo_articles/${additionalInfo.img1Article}.jpg`;
     const remoteImg2Url = `https://eriflex-configurator.nvent.com/eriflex/design/photo_articles/${additionalInfo.img2Article}.jpg`;
 
-    const getApiImageUrl = (path: string) => `http://127.0.0.1:8000/api/getImage?path=${encodeURIComponent(path)}`;
-
     const tryImageWithExtensions = async (
       basePath: string,
       index: number,
@@ -227,14 +239,12 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
       const extensions = ['jpg', 'png'];
       for (const ext of extensions) {
         const relativePath = `${basePath}-${index}.${ext}`;
-        const apiUrl = getApiImageUrl(relativePath);
-        try {
-          const response = await axios.get(apiUrl, { responseType: 'blob' });
-          const blobUrl = URL.createObjectURL(response.data);
+        // Use centralized API instead of direct axios call
+        const { ok, blob } = await getImageBlobByPath(relativePath);
+        if (ok && blob) {
+          const blobUrl = URL.createObjectURL(blob);
           setImage(blobUrl);
           return;
-        } catch (error) {
-          continue;
         }
       }
       setImage(remoteFallbackUrl);
@@ -260,7 +270,8 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
     const suffix = docType === 'doc' ? 'doc' : docType === '2d' ? '2d' : '3d';
     const extension = docType === '3d' ? 'stp' : 'pdf';
     const filePath = `/documents/${componentId}-${resmini}-${nbphase}-${suffix}.${extension}`;
-    return `http://127.0.0.1:8000/api/getFile?path=${encodeURIComponent(filePath)}`;
+    
+    return getFileLink(filePath);
   };
 
   return (

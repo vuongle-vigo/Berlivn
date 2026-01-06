@@ -10,7 +10,7 @@ _USERS_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   company_name TEXT NOT NULL,
-  registration_number TEXT,
+  registration_number TEXT UNIQUE, -- Made UNIQUE for login
   activities TEXT NOT NULL,
   activities_other TEXT,
   employee_count TEXT NOT NULL,
@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_registration_number ON users(registration_number); -- Added index for login
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_name);
 """
@@ -50,6 +51,7 @@ def create_user(
 	email: str, 
 	password_hash: str, 
 	company_name: str,
+	registration_number: str, # Moved here, required
 	activities: str,
 	employee_count: str,
 	company_phone: str,
@@ -61,7 +63,6 @@ def create_user(
 	city: str,
 	direct_phone: str,
 	mobile_phone: str,
-	registration_number: Optional[str] = None,
 	activities_other: Optional[str] = None,
 	country: str = "Vietnam",
 	role: str = "user",
@@ -71,16 +72,16 @@ def create_user(
 	user_id = str(uuid.uuid4())
 	sql = """
 		INSERT INTO users (
-			id, email, password_hash, company_name, activities, employee_count, 
+			id, email, password_hash, company_name, registration_number, activities, employee_count, 
 			company_phone, first_name, last_name, job_position, professional_address, 
-			postal_code, city, direct_phone, mobile_phone, registration_number, 
+			postal_code, city, direct_phone, mobile_phone, 
 			activities_other, country, role, daily_search_limit
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 	"""
 	params = (
-		user_id, email, password_hash, company_name, activities, employee_count,
+		user_id, email, password_hash, company_name, registration_number, activities, employee_count,
 		company_phone, first_name, last_name, job_position, professional_address,
-		postal_code, city, direct_phone, mobile_phone, registration_number,
+		postal_code, city, direct_phone, mobile_phone,
 		activities_other, country, role, daily_search_limit
 	)
 	db.execute(sql, params, commit=True)
@@ -119,6 +120,9 @@ def check_and_increment_search(user_id: str) -> Dict[str, Any]:
 
 def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
 	return db.fetch_one("SELECT * FROM users WHERE id = ?;", (user_id,))
+
+def get_user_by_registration_number(registration_number: str) -> Optional[Dict[str, Any]]:
+	return db.fetch_one("SELECT * FROM users WHERE registration_number = ?;", (registration_number,))
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 	return db.fetch_one("SELECT * FROM users WHERE email = ?;", (email,))

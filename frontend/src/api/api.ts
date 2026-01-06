@@ -9,11 +9,11 @@ async function safeJson(res: Response) {
   }
 }
 
-export async function login(email: string, password: string) {
+export async function login(registrationNumber: string, password: string) {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ registration_number: registrationNumber, password }),
   });
   const data = await safeJson(res);
   return { ok: res.ok, status: res.status, data };

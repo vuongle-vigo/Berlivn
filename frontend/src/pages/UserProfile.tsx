@@ -266,12 +266,14 @@ export default function UserProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="registrationNumber">Số đăng ký</Label>
+              <Label htmlFor="registrationNumber">Tên đăng nhập (Mã số thuế)</Label>
               <Input
                 id="registrationNumber"
                 value={companyData.registrationNumber}
-                onChange={(e) => handleCompanyChange('registrationNumber', e.target.value)}
+                disabled
+                className="bg-gray-100"
               />
+              <p className="text-sm text-gray-500">Thông tin đăng nhập không thể thay đổi</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -396,7 +398,7 @@ export default function UserProfile() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Tên đăng nhập (Email) <span className="text-red-500">*</span></Label>
+            <Label htmlFor="email">Email liên hệ <span className="text-red-500">*</span></Label>
             <Input
               id="email"
               type="email"

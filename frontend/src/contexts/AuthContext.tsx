@@ -3,11 +3,13 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 interface User {
   id: string;
   email?: string;
+  registration_number?: string;
 }
 
 interface Profile {
   id: string;
   email: string;
+  registration_number?: string;
   full_name: string;
   role: 'admin' | 'user';
   is_active: boolean;
@@ -20,8 +22,8 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signIn: (registrationNumber: string, password: string) => Promise<{ error: any }>;
+  signUp: (registrationNumber: string, email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   remainingSearches: number;
@@ -45,12 +47,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // TODO: Implement
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (registrationNumber: string, password: string) => {
     // TODO: Implement
     return { error: null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (registrationNumber: string, email: string, password: string, fullName: string) => {
     // TODO: Implement
     return { error: null };
   };

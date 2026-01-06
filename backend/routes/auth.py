@@ -9,7 +9,7 @@ class RegisterRequest(BaseModel):
 	email: EmailStr
 	password: str
 	company_name: str
-	registration_number: Optional[str] = None
+	registration_number: str
 	activities: str
 	activities_other: Optional[str] = None
 	employee_count: str
@@ -26,13 +26,14 @@ class RegisterRequest(BaseModel):
 	role: Optional[str] = "user"
 
 class LoginRequest(BaseModel):
-	email: EmailStr
+	registration_number: str
 	password: str
 
 class UserResponse(BaseModel):
 	id: str
 	email: EmailStr
 	role: str
+	registration_number: Optional[str] = None
 	created_at: Optional[str] = None
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -48,7 +49,7 @@ def register(req: RegisterRequest):
 @router.post("/login", response_model=UserResponse)
 def login(req: LoginRequest):
 	print(req)
-	user = authenticate_user(req.email, req.password)
+	user = authenticate_user(req.registration_number, req.password)
 	if not user:
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
 	return user

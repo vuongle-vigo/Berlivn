@@ -12,7 +12,7 @@ class CreateUserRequest(BaseModel):
 	email: EmailStr
 	password: str
 	company_name: str
-	registration_number: Optional[str] = None
+	registration_number: str # Made required for login
 	activities: str
 	activities_other: Optional[str] = None
 	employee_count: str
@@ -61,7 +61,7 @@ class UserResponse(BaseModel):
 	
 	# Company fields
 	company_name: str
-	registration_number: Optional[str] = None
+	registration_number: str
 	activities: str
 	activities_other: Optional[str] = None
 	employee_count: str

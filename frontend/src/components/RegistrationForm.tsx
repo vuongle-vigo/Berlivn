@@ -200,12 +200,16 @@ export default function RegistrationForm({ onSuccess, onCancel }: RegistrationFo
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="registrationNumber">Số đăng ký</Label>
+              <Label htmlFor="registrationNumber" className="flex items-center gap-1">
+                <span className="text-red-500">*</span>
+                Tên đăng nhập (Mã số thuế)
+              </Label>
               <Input
                 id="registrationNumber"
                 value={formData.registrationNumber}
                 onChange={(e) => handleChange('registrationNumber', e.target.value)}
-                placeholder="Nhập số đăng ký"
+                required
+                placeholder="Nhập mã số thuế (Sử dụng để đăng nhập)"
               />
             </div>
 
@@ -293,7 +297,7 @@ export default function RegistrationForm({ onSuccess, onCancel }: RegistrationFo
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-1">
                 <span className="text-red-500">*</span>
-                Tên đăng nhập để kết nối (Email)
+                Email liên hệ
               </Label>
               <Input
                 id="email"

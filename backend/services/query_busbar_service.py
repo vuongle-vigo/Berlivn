@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from calc_data import get_aspExcel, send_aspExcel  # adjust names if different
 from sqlite import *  # reuse existing sqlite helper functions
 
-DB_PATH = "data.db"
+from database.database import DB_PATH
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -27,6 +27,9 @@ def query_busbar_service(data: Dict[str, Any]):
     shape = data["shape"]
 
     conn = get_db_connection()
+    if not conn:
+        print("Failed to connect to database.")
+        return []
     query = """
         SELECT * FROM components_list
         WHERE nbphase = ?
@@ -35,9 +38,15 @@ def query_busbar_service(data: Dict[str, Any]):
           AND poles = ?
           AND shape = ?
     """
+    print("Executing query with:", per_phase, thickness, width, poles, shape)
     cursor = conn.execute(query, (per_phase, thickness, width, poles, shape))
+    if not cursor:
+        print("No results from query.")
+        conn.close()
+        return []
+    print("Query executed successfully.")
     products = [dict(row) for row in cursor.fetchall()]
-
+    print(f"Found {len(products)} products matching criteria.")
     for product in products:
         info_query = """
             SELECT * FROM components_info

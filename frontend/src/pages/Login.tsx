@@ -11,7 +11,7 @@ import { login } from '../api/api';
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await login(email, password);
+      const res = await login(registrationNumber, password);
       if (res.ok) {
         // Persist user session to localStorage
         localStorage.setItem('user', JSON.stringify(res.data));
@@ -38,7 +38,7 @@ export default function Login() {
           window.location.href = '/';
         }
       } else {
-        setError(res.data?.detail || 'Email hoặc mật khẩu không đúng');
+        setError(res.data?.detail || 'Mã số thuế hoặc mật khẩu không đúng');
       }
     } catch (err: any) {
       setError('Đã có lỗi xảy ra');
@@ -70,7 +70,7 @@ export default function Login() {
                 onSuccess={(data) => {
                   setIsSignUp(false);
                   setError('');
-                  if (data?.email) setEmail(data.email);
+                  if (data?.registration_number) setRegistrationNumber(data.registration_number);
                 }}
                 onCancel={() => {
                   setIsSignUp(false);
@@ -94,13 +94,13 @@ export default function Login() {
           ) : (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="registrationNumber">Tên đăng nhập (Mã số thuế)</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
+                  id="registrationNumber"
+                  type="text"
+                  value={registrationNumber}
+                  onChange={(e) => setRegistrationNumber(e.target.value)}
+                  placeholder="Nhập mã số thuế công ty"
                   required
                 />
               </div>

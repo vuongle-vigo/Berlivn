@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  incrementUserSearch, 
-  getUser, 
-  queryBusbar, 
-  getImageBlobByPath, 
-  getFileLink 
+import {
+  getDailySearchLimit,
+  decrementDailySearchLimit,
+  queryBusbar,
+  getImageBlobByPath,
+  getFileLink
 } from "@/api/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -67,13 +67,17 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
   useEffect(() => {
     const fetchUserLimit = async () => {
       if (user?.id && !isAdmin) {
-        const res = await getUser(user.id);
+        const res = await getDailySearchLimit(user.id);
         if (res.ok && res.data) {
-          const limit = res.data.daily_search_limit || 20;
-          const count = res.data.search_count || 0;
-          const remaining = Math.max(0, limit - count);
+          const limit = Number(res.data.daily_search_limit ?? 0);
+          const remaining = Number(
+            res.data.daily_search_remaining ?? res.data.daily_search_limit ?? 0
+          );
           setRemainingSearches(remaining);
           setCanSearch(remaining > 0);
+        } else {
+          setRemainingSearches(0);
+          setCanSearch(false);
         }
       } else if (isAdmin) {
         setCanSearch(true);
@@ -144,26 +148,26 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
   };
 
   const fetchProducts = async () => {
-    if (!isAdmin && !canSearch) {
+    if (!isAdmin && remainingSearches <= 0) {
       alert(`Bạn đã hết lượt tra cứu hôm nay. Còn lại: ${remainingSearches} lượt`);
       return;
     }
 
     setLoading(true);
     try {
-      if (!isAdmin && user?.id) {
-        const res = await incrementUserSearch(user.id);
-        if (res.ok && res.data) {
-          setRemainingSearches(res.data.remaining);
-          setCanSearch(res.data.allowed);
-          if (onSearchComplete) onSearchComplete();
-          if (!res.data.allowed) {
-             alert("Bạn đã hết lượt tra cứu trong ngày.");
-             setLoading(false);
-             return;
-          }
-        }
-      }
+      // if (!isAdmin && user?.id) {
+      //   const res = await incrementUserSearch(user.id);
+      //   if (res.ok && res.data) {
+      //     setRemainingSearches(res.data.remaining);
+      //     setCanSearch(res.data.allowed);
+      //     if (onSearchComplete) onSearchComplete();
+      //     if (!res.data.allowed) {
+      //        alert("Bạn đã hết lượt tra cứu trong ngày.");
+      //        setLoading(false);
+      //        return;
+      //     }
+      //   }
+      // }
 
       let calculatedIpk = 0;
       if (icc <= 5) {
@@ -197,6 +201,19 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           setProducts(response.data.products || []);
           if (response.data.products && response.data.products.length > 0) {
             handleRowClick(response.data.products[0]);
+          }
+          if (!isAdmin && user?.id) {
+            const decRes = await decrementDailySearchLimit(user.id);
+            if (decRes.ok && decRes.data) {
+              const nextRemaining = Number(
+                decRes.data.daily_search_remaining ?? remainingSearches
+              );
+              setRemainingSearches(nextRemaining);
+              setCanSearch(nextRemaining > 0);
+              if (onSearchComplete) onSearchComplete();
+            } else {
+              alert("Không thể cập nhật lượt tra cứu. Vui lòng thử lại sau.");
+            }
           }
         } else {
           console.error("Failed to query products", response.status);

@@ -1,13 +1,15 @@
 import sqlite3
 
 # Hàm tạo kết nối đến SQLite database
-def connect_to_db(db_name="data.db"):
+db_name = "berlivn.db"
+
+def connect_to_db():
     return sqlite3.connect(db_name)
 
 # Hàm thêm dữ liệu vào bảng
-def insert_component_info(key, nbphase, params, db_name="data.db"):
+def insert_component_info(key, nbphase, params):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để thêm dữ liệu
@@ -32,9 +34,9 @@ def insert_component_info(key, nbphase, params, db_name="data.db"):
     finally:
         conn.close()
 
-def insert_component_list(key, component_list, db_name="data.db"):
+def insert_component_list(key, component_list):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để thêm dữ liệu
@@ -66,9 +68,9 @@ def insert_component_list(key, component_list, db_name="data.db"):
     finally:
         conn.close()
 
-def get_component_list(db_name="data.db"):
+def get_component_list():
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để lấy danh sách component
@@ -84,9 +86,9 @@ def get_component_list(db_name="data.db"):
         conn.close()
 
 # Hàm truy vấn dữ liệu theo key
-def query_data_component_info(nbphase, refArticle, db_name="data.db"):
+def query_data_component_info(nbphase, refArticle):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để truy vấn
@@ -106,9 +108,9 @@ def query_data_component_info(nbphase, refArticle, db_name="data.db"):
     finally:
         conn.close()
 
-def get_joined_components(db_name="data.db"):
+def get_joined_components():
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         sql = """
@@ -148,9 +150,9 @@ def get_joined_components(db_name="data.db"):
     finally:
         conn.close()
 
-def insert_calc_excel(W, T, B, Angle, a, Icc, Force, NbrePhase, L, db_name="data.db"):
+def insert_calc_excel(W, T, B, Angle, a, Icc, Force, NbrePhase, L):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để thêm dữ liệu
@@ -169,9 +171,9 @@ def insert_calc_excel(W, T, B, Angle, a, Icc, Force, NbrePhase, L, db_name="data
     finally:
         conn.close()
 
-def get_calc_excel(W, T, B, Angle, a, Icc, Force, NbrePhase, db_name="data.db"):
+def get_calc_excel(W, T, B, Angle, a, Icc, Force, NbrePhase):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để truy vấn
@@ -193,9 +195,9 @@ def get_calc_excel(W, T, B, Angle, a, Icc, Force, NbrePhase, db_name="data.db"):
     finally:
         conn.close()
 
-def get_calc_excel_F_max(W, T, B, Angle, a, Icc, NbrePhase, db_name="data.db"):
+def get_calc_excel_F_max(W, T, B, Angle, a, Icc, NbrePhase):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để tìm Force lớn nhất có kết quả L
@@ -219,9 +221,9 @@ def get_calc_excel_F_max(W, T, B, Angle, a, Icc, NbrePhase, db_name="data.db"):
     finally:
         conn.close()
 
-def get_calc_excel_L_max(W, T, B, Angle, a, Icc, NbrePhase, db_name="data.db"):
+def get_calc_excel_L_max(W, T, B, Angle, a, Icc, NbrePhase):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Câu lệnh SQL để lấy L tại Force lớn nhất
@@ -248,7 +250,7 @@ def get_calc_excel_L_max(W, T, B, Angle, a, Icc, NbrePhase, db_name="data.db"):
         conn.close()
 
 # Updated get_component_info_by_id to include nbphase
-def get_component_info_by_id(component_id: str, nbphase: int = None, db_name="data.db"):
+def get_component_info_by_id(component_id: str, nbphase: int = None):
     try:
         conn = connect_to_db()
         cursor = conn.cursor()
@@ -279,9 +281,9 @@ def get_component_info_by_id(component_id: str, nbphase: int = None, db_name="da
         conn.close()
 
 # Updated function for updating component info (excluding key)
-def update_component_info(key: str, nbphase: int, angle: int, resmini: float, info: str, a_list: str, db_name="data.db"):
+def update_component_info(key: str, nbphase: int, angle: int, resmini: float, info: str, a_list: str):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # SQL command to update non-key fields
@@ -303,9 +305,9 @@ def update_component_info(key: str, nbphase: int, angle: int, resmini: float, in
     finally:
         conn.close()
 
-def delete_component_info(key: str, nbphase: int, db_name="data.db"):
+def delete_component_info(key: str, nbphase: int):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # SQL command to delete the component info
@@ -326,9 +328,9 @@ def delete_component_info(key: str, nbphase: int, db_name="data.db"):
     finally:
         conn.close()
 
-def delete_component_list(component_id: str, nbphase: int, db_name="data.db"):
+def delete_component_list(component_id: str, nbphase: int):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # SQL command to delete the component list
@@ -349,9 +351,9 @@ def delete_component_list(component_id: str, nbphase: int, db_name="data.db"):
     finally:
         conn.close()
 
-def create_component_info(key: str, nbphase: int, angle: int, resmini: int, info: str, a_list: str, db_name="data.db"):
+def create_component_info(key: str, nbphase: int, angle: int, resmini: int, info: str, a_list: str):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         Amini = 60  # Giá trị mặc định
         if a_list:
@@ -377,9 +379,9 @@ def create_component_info(key: str, nbphase: int, angle: int, resmini: int, info
     finally:
         conn.close()
 
-def get_component_list_by_id(component_id: str, nbphase: int, db_name="data.db"):
+def get_component_list_by_id(component_id: str, nbphase: int):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         sql = """
@@ -415,9 +417,9 @@ def get_component_list_by_id(component_id: str, nbphase: int, db_name="data.db")
     finally:
         conn.close()
 
-def create_component_list(nbphase: int, thickness: list, width: list, poles: list, shape: list, component_id: str, db_name="data.db"):
+def create_component_list(nbphase: int, thickness: list, width: list, poles: list, shape: list, component_id: str):
     try:
-        conn = connect_to_db(db_name)
+        conn = connect_to_db()
         cursor = conn.cursor()
         
         # Bước 1: Xóa các bản ghi cũ với component_id và nbphase

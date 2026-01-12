@@ -1,7 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
+import {
+  getComponent,
+  updateComponentData,
+  uploadProductImages,
+  uploadProductFiles,
+  deleteComponent as deleteComponentApi,
+  createComponent as createComponentApi,
+  deleteImageByPath,
+  deleteFileByPath,
+  getImageBlobByPath,
+  getFileBlobByPath,
+} from "@/api/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,9 +49,9 @@ export default function Products() {
 
   // State for images
   const [images, setImages] = useState({
-    img1: { url: null, extension: 'jpg' },
-    img2: { url: null, extension: 'jpg' },
-    img3: { url: null, extension: 'jpg' },
+    img1: { url: null, extension: "jpg" },
+    img2: { url: null, extension: "jpg" },
+    img3: { url: null, extension: "jpg" },
   });
   const [imageFiles, setImageFiles] = useState({
     img1: null,
@@ -51,13 +62,13 @@ export default function Products() {
   // State for documents
   const [documents, setDocuments] = useState({
     doc: { url: null, name: null, extension: null },
-    '2d': { url: null, name: null, extension: null },
-    '3d': { url: null, name: null, extension: null },
+    "2d": { url: null, name: null, extension: null },
+    "3d": { url: null, name: null, extension: null },
   });
   const [documentUploads, setDocumentUploads] = useState({
     doc: null,
-    '2d': null,
-    '3d': null,
+    "2d": null,
+    "3d": null,
   });
 
   // State for create form (dialog)
@@ -82,14 +93,14 @@ export default function Products() {
   const [open, setOpen] = useState(false);
 
   // Allowed image and document formats
-  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
   const maxImageSize = 5 * 1024 * 1024; // 5MB
   const allowedDocTypes = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ];
-  const allowed3DTypes = ['application/step', 'model/step'];
+  const allowed3DTypes = ["application/step", "model/step"];
   const maxDocSize = 10 * 1024 * 1024; // 10MB
 
   // Handle search input changes
@@ -125,7 +136,7 @@ export default function Products() {
         return;
       }
       setImageFiles({ ...imageFiles, [imgKey]: file });
-      const extension = file.name.split('.').pop().toLowerCase();
+      const extension = file.name.split(".").pop().toLowerCase();
       setImages({
         ...images,
         [imgKey]: { url: URL.createObjectURL(file), extension },
@@ -137,27 +148,28 @@ export default function Products() {
   const handleImageDelete = async (imgKey) => {
     if (!componentData.key || !componentData.resmini) return;
     const imgNumber = imgKey.slice(-1);
-    const extension = images[imgKey].extension || 'jpg';
+    const extension = images[imgKey].extension || "jpg";
     const imagePath = `/products/${componentData.key}-${componentData.resmini}-${componentData.nbphase}-${imgNumber}.${extension}`;
 
     try {
-      await axios.delete("http://127.0.0.1:8000/api/deleteImage", {
-        data: { image_path: imagePath },
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await deleteImageByPath(imagePath);
+      if (!res.ok) {
+        setError(res.data?.detail || `Lỗi khi xóa ảnh ${imgNumber}`);
+        return;
+      }
       setImages({
         ...images,
-        [imgKey]: { url: null, extension: 'jpg' },
+        [imgKey]: { url: null, extension: "jpg" },
       });
       setImageFiles({ ...imageFiles, [imgKey]: null });
-      setResponse(`Xóa ảnh ${imgNumber} thành công`);
+      setResponse(res.data?.message || `Xóa ảnh ${imgNumber} thành công`);
     } catch (err) {
-      setError(err.response?.data?.detail || "Lỗi khi xóa ảnh");
+      setError(err instanceof Error ? err.message : "Lỗi khi xóa ảnh");
     }
   };
 
   // Handle document file selection
-    const handleDocumentChange = (e, docKey) => {
+  const handleDocumentChange = (e, docKey) => {
     const file = e.target.files[0];
     if (file) {
       console.log(`Selected file for ${docKey}:`, {
@@ -165,11 +177,11 @@ export default function Products() {
         type: file.type,
         size: file.size,
       }); // Debug logging
-      const extension = file.name.split('.').pop().toLowerCase();
-      
+      const extension = file.name.split(".").pop().toLowerCase();
+
       // Validate file type for doc and 2d only
       let isValidType = true;
-      if (docKey !== '3d') {
+      if (docKey !== "3d") {
         isValidType = allowedDocTypes.includes(file.type);
         if (!isValidType) {
           setError(`Vui lòng chọn file PDF hoặc DOC/DOCX cho ${docKey.toUpperCase()}`);
@@ -194,40 +206,40 @@ export default function Products() {
     }
   };
 
-
   // Handle document file deletion
   const handleDocumentDelete = async (docKey) => {
     if (!componentData.key || !componentData.resmini) return;
-    const suffix = docKey === 'doc' ? 'doc' : docKey === '2d' ? '2d' : '3d';
-    const extension = documents[docKey].extension || (docKey === '3d' ? 'stp' : 'pdf');
+    const suffix = docKey === "doc" ? "doc" : docKey === "2d" ? "2d" : "3d";
+    const extension = documents[docKey].extension || (docKey === "3d" ? "stp" : "pdf");
     const filePath = `/documents/${componentData.key}-${componentData.resmini}-${componentData.nbphase}-${suffix}.${extension}`;
 
     try {
-      await axios.delete("http://127.0.0.1:8000/api/deleteFile", {
-        data: { file_path: filePath },
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await deleteFileByPath(filePath);
+      if (!res.ok) {
+        setError(res.data?.detail || `Lỗi khi xóa tài liệu ${docKey.toUpperCase()}`);
+        return;
+      }
       setDocuments({
         ...documents,
         [docKey]: { url: null, name: null, extension: null },
       });
       setDocumentUploads({ ...documentUploads, [docKey]: null });
-      setResponse(`Xóa tài liệu ${docKey.toUpperCase()} thành công`);
+      setResponse(res.data?.message || `Xóa tài liệu ${docKey.toUpperCase()} thành công`);
     } catch (err) {
-      setError(err.response?.data?.detail || "Lỗi khi xóa tài liệu");
+      setError(err instanceof Error ? err.message : "Lỗi khi xóa tài liệu");
     }
   };
 
   // Normalize input to array
   const normalizeToArray = (value, isNumeric = false) => {
     if (Array.isArray(value)) {
-      return isNumeric ? value.map(val => parseFloat(val)).filter(val => !isNaN(val)) : value;
+      return isNumeric ? value.map((val) => parseFloat(val)).filter((val) => !isNaN(val)) : value;
     }
-    if (typeof value === 'string') {
-      const result = value.split(/[\s,]+/).filter(val => val.trim() !== '');
-      return isNumeric ? result.map(val => parseFloat(val)).filter(val => !isNaN(val)) : result;
+    if (typeof value === "string") {
+      const result = value.split(/[\s,]+/).filter((val) => val.trim() !== "");
+      return isNumeric ? result.map((val) => parseFloat(val)).filter((val) => !isNaN(val)) : result;
     }
-    if (typeof value === 'number') {
+    if (typeof value === "number") {
       return [value];
     }
     return [];
@@ -240,9 +252,15 @@ export default function Products() {
       setError("Component ID không được để trống");
       return;
     }
-    if (!shouldSearch) {
+    if (!shouldSearch) return;
+
+    const nbphaseValue = parseInt(searchNbphase);
+    if (isNaN(nbphaseValue)) {
+      setError("Vui lòng nhập Số pha hợp lệ");
+      setShouldSearch(false);
       return;
     }
+
     setResponse(null);
     setError(null);
     setComponentData({
@@ -258,108 +276,95 @@ export default function Products() {
       shape: "",
     });
     setImages({
-      img1: { url: null, extension: 'jpg' },
-      img2: { url: null, extension: 'jpg' },
-      img3: { url: null, extension: 'jpg' },
+      img1: { url: null, extension: "jpg" },
+      img2: { url: null, extension: "jpg" },
+      img3: { url: null, extension: "jpg" },
     });
     setImageFiles({ img1: null, img2: null, img3: null });
     setDocuments({
       doc: { url: null, name: null, extension: null },
-      '2d': { url: null, name: null, extension: null },
-      '3d': { url: null, name: null, extension: null },
+      "2d": { url: null, name: null, extension: null },
+      "3d": { url: null, name: null, extension: null },
     });
-    setDocumentUploads({ doc: null, '2d': null, '3d': null });
+    setDocumentUploads({ doc: null, "2d": null, "3d": null });
 
     try {
-      const params = { component_id: componentId };
-      if (searchNbphase) {
-        const nbphaseValue = parseInt(searchNbphase);
-        if (isNaN(nbphaseValue)) {
-          setError("Vui lòng nhập Số pha hợp lệ");
-          return;
+      const res = await getComponent(componentId.trim(), nbphaseValue);
+      if (!res.ok || !res.data?.components || !res.data?.components_list) {
+        setError(res.data?.detail || "Không tìm thấy component với ID và Number of Phases đã nhập");
+        return;
+      }
+
+      const data = {
+        key: res.data.components.key || "",
+        nbphase: res.data.components.nbphase?.toString() || "",
+        angle: res.data.components.angle?.toString() || "",
+        resmini: (res.data.components.resmini * 10)?.toString() || "",
+        info: res.data.components.info || "",
+        a_list: res.data.components.a_list || "",
+        thickness: res.data.components_list.thickness || "",
+        width: res.data.components_list.width || "",
+        poles: res.data.components_list.poles || "",
+        shape: res.data.components_list.shape || "",
+      };
+      setComponentData(data);
+
+      const imageBase = `/products/${data.key}-${data.resmini}-${data.nbphase}`;
+      const extensions = ["jpg", "png", "webp"];
+      const imagePromises = [1, 2, 3].map(async (i) => {
+        for (const ext of extensions) {
+          const path = `${imageBase}-${i}.${ext}`;
+          const imgRes = await getImageBlobByPath(path);
+          if (imgRes.ok && imgRes.blob) {
+            return { imgKey: `img${i}`, url: URL.createObjectURL(imgRes.blob), extension: ext };
+          }
         }
-        params.nbphase = nbphaseValue;
-      }
+        return { imgKey: `img${i}`, url: null, extension: "jpg" };
+      });
+      const imageResults = await Promise.all(imagePromises);
+      const newImages = {
+        img1: { url: null, extension: "jpg" },
+        img2: { url: null, extension: "jpg" },
+        img3: { url: null, extension: "jpg" },
+      };
+      imageResults.forEach(({ imgKey, url, extension }) => {
+        newImages[imgKey] = { url, extension };
+      });
+      setImages(newImages);
 
-      const res = await axios.get("http://127.0.0.1:8000/api/getComponents", { params });
-
-      if (res.data.components && res.data.components_list) {
-        const data = {
-          key: res.data.components.key || "",
-          nbphase: res.data.components.nbphase?.toString() || "",
-          angle: res.data.components.angle?.toString() || "",
-          resmini: (res.data.components.resmini * 10)?.toString() || "",
-          info: res.data.components.info || "",
-          a_list: res.data.components.a_list || "",
-          thickness: res.data.components_list.thickness || "",
-          width: res.data.components_list.width || "",
-          poles: res.data.components_list.poles || "",
-          shape: res.data.components_list.shape || "",
-        };
-        setComponentData(data);
-
-        // Fetch images
-        const imageBase = `/products/${data.key}-${data.resmini}-${data.nbphase}`;
-        const extensions = ['jpg', 'png', 'webp'];
-        const imagePromises = [1, 2, 3].map(async (i) => {
-          for (const ext of extensions) {
-            try {
-              const response = await axios.get(`http://127.0.0.1:8000/api/getImage?path=${imageBase}-${i}.${ext}`, {
-                responseType: 'blob',
-              });
-              return { imgKey: `img${i}`, url: URL.createObjectURL(response.data), extension: ext };
-            } catch {
-              continue;
-            }
+      const docBase = `/documents/${data.key}-${data.resmini}-${data.nbphase}`;
+      const docKeys = ["doc", "2d", "3d"] as const;
+      const docPromises = docKeys.map(async (key) => {
+        const suffix = key === "doc" ? "doc" : key === "2d" ? "2d" : "3d";
+        const docExtensions = key === "3d" ? ["stp", "step"] : ["pdf", "doc", "docx"];
+        for (const ext of docExtensions) {
+          const path = `${docBase}-${suffix}.${ext}`;
+          const fileRes = await getFileBlobByPath(path);
+          if (fileRes.ok && fileRes.blob) {
+            return {
+              docKey: key,
+              url: URL.createObjectURL(fileRes.blob),
+              name: `${data.key}-${data.resmini}-${data.nbphase}-${suffix}.${ext}`,
+              extension: ext,
+            };
           }
-          return { imgKey: `img${i}`, url: null, extension: 'jpg' };
-        });
-        const imageResults = await Promise.all(imagePromises);
-        const newImages = {
-          img1: { url: null, extension: 'jpg' },
-          img2: { url: null, extension: 'jpg' },
-          img3: { url: null, extension: 'jpg' },
-        };
-        imageResults.forEach(({ imgKey, url, extension }) => {
-          newImages[imgKey] = { url, extension };
-        });
-        setImages(newImages);
+        }
+        return { docKey: key, url: null, name: null, extension: null };
+      });
+      const docResults = await Promise.all(docPromises);
+      const newDocuments = {
+        doc: { url: null, name: null, extension: null },
+        "2d": { url: null, name: null, extension: null },
+        "3d": { url: null, name: null, extension: null },
+      };
+      docResults.forEach(({ docKey, url, name, extension }) => {
+        newDocuments[docKey] = { url, name, extension };
+      });
+      setDocuments(newDocuments);
 
-        // Fetch documents
-        const docBase = `/documents/${data.key}-${data.resmini}-${data.nbphase}`;
-        const docKeys = ['doc', '2d', '3d'];
-        const docPromises = docKeys.map(async (key) => {
-          const suffix = key === 'doc' ? 'doc' : key === '2d' ? '2d' : '3d';
-          const docExtensions = key === '3d' ? ['stp', 'step'] : ['pdf', 'doc', 'docx'];
-          for (const ext of docExtensions) {
-            try {
-              const response = await axios.get(`http://127.0.0.1:8000/api/getFile?path=${docBase}-${suffix}.${ext}`, {
-                responseType: 'blob',
-              });
-              return { docKey: key, url: URL.createObjectURL(response.data), name: `${data.key}-${data.resmini}-${data.nbphase}-${suffix}.${ext}`, extension: ext };
-            } catch {
-              continue;
-            }
-          }
-          return { docKey: key, url: null, name: null, extension: null };
-        });
-        const docResults = await Promise.all(docPromises);
-        const newDocuments = {
-          doc: { url: null, name: null, extension: null },
-          '2d': { url: null, name: null, extension: null },
-          '3d': { url: null, name: null, extension: null },
-        };
-        docResults.forEach(({ docKey, url, name, extension }) => {
-          newDocuments[docKey] = { url, name, extension };
-        });
-        setDocuments(newDocuments);
-
-        setResponse("Tải dữ liệu component, ảnh và tài liệu thành công");
-      } else {
-        setError("Không tìm thấy component với ID và Number of Phases đã nhập");
-      }
+      setResponse("Tải dữ liệu component, ảnh và tài liệu thành công");
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Đã xảy ra lỗi khi kết nối với server");
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi kết nối với server");
     }
     setShouldSearch(false);
   };
@@ -384,6 +389,11 @@ export default function Products() {
       setError("Vui lòng nhập Resmini hợp lệ");
       return;
     }
+    const nbphaseValue = parseInt(componentData.nbphase);
+    if (isNaN(nbphaseValue)) {
+      setError("Vui lòng nhập Number of Phases hợp lệ");
+      return;
+    }
     if (!componentData.info.trim()) {
       setError("Info không được để trống");
       return;
@@ -395,7 +405,7 @@ export default function Products() {
 
     const payload = {
       key: componentData.key,
-      nbphase: parseInt(componentData.nbphase),
+      nbphase: nbphaseValue,
       angle: angleValue,
       resmini: resminiValue / 10,
       info: componentData.info,
@@ -407,48 +417,62 @@ export default function Products() {
     };
 
     try {
-      // Save component data
-      const res = await axios.post("http://127.0.0.1:8000/api/updateComponent", payload, {
-        headers: { "Content-Type": "application/json" },
-      });
+      const updateRes = await updateComponentData(payload);
+      if (!updateRes.ok) {
+        setError(updateRes.data?.detail || "Đã xảy ra lỗi khi cập nhật component");
+        return;
+      }
 
-      // Upload images if any
       const imageFormData = new FormData();
+      let hasImages = false;
       Object.entries(imageFiles).forEach(([key, file]) => {
         if (file) {
+          hasImages = true;
           const imgNumber = key.slice(-1);
-          const extension = file.name.split('.').pop().toLowerCase();
-          imageFormData.append(`img${imgNumber}`, file, `${componentData.key}-${resminiValue}-${searchNbphase}-${imgNumber}.${extension}`);
+          const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+          imageFormData.append(
+            `img${imgNumber}`,
+            file,
+            `${componentData.key}-${resminiValue}-${nbphaseValue}-${imgNumber}.${extension}`
+          );
         }
       });
-      if (imageFormData.has('img1') || imageFormData.has('img2') || imageFormData.has('img3')) {
-        await axios.post("http://127.0.0.1:8000/api/uploadImages", imageFormData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+      if (hasImages) {
+        const uploadImagesRes = await uploadProductImages(imageFormData);
+        if (!uploadImagesRes.ok) {
+          setError(uploadImagesRes.data?.detail || "Đã xảy ra lỗi khi tải ảnh lên");
+          return;
+        }
       }
 
-      // Upload documents if any
       const docFormData = new FormData();
+      let hasDocs = false;
       Object.entries(documentUploads).forEach(([key, file]) => {
         if (file) {
-          const suffix = key === 'doc' ? 'doc' : key === '2d' ? '2d' : '3d';
-          const extension = file.name.split('.').pop().toLowerCase();
-          // Map frontend keys to backend parameter names
-          const formKey = key === 'doc' ? 'doc' : key === '2d' ? 'two_d' : 'three_d';
-          docFormData.append(formKey, file, `${componentData.key}-${resminiValue}-${searchNbphase}-${suffix}.${extension}`);
+          hasDocs = true;
+          const suffix = key === "doc" ? "doc" : key === "2d" ? "2d" : "3d";
+          const extension = file.name.split(".").pop()?.toLowerCase() || "pdf";
+          const formKey = key === "doc" ? "doc" : key === "2d" ? "two_d" : "three_d";
+          docFormData.append(
+            formKey,
+            file,
+            `${componentData.key}-${resminiValue}-${nbphaseValue}-${suffix}.${extension}`
+          );
         }
       });
-      if (docFormData.has('doc') || docFormData.has('two_d') || docFormData.has('three_d')) {
-        await axios.post("http://127.0.0.1:8000/api/uploadFiles", docFormData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+      if (hasDocs) {
+        const uploadDocsRes = await uploadProductFiles(docFormData);
+        if (!uploadDocsRes.ok) {
+          setError(uploadDocsRes.data?.detail || "Đã xảy ra lỗi khi tải tài liệu lên");
+          return;
+        }
       }
 
-      setResponse("Cập nhật component, ảnh và tài liệu thành công");
+      setResponse(updateRes.data?.message || "Cập nhật component, ảnh và tài liệu thành công");
       setImageFiles({ img1: null, img2: null, img3: null });
-      setDocumentUploads({ doc: null, '2d': null, '3d': null });
+      setDocumentUploads({ doc: null, "2d": null, "3d": null });
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Đã xảy ra lỗi khi kết nối với server");
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi kết nối với server");
     }
   };
 
@@ -469,11 +493,12 @@ export default function Products() {
 
     const payload = { component_id: componentData.key, nbphase: nbphaseValue };
     try {
-      const res = await axios.delete("http://127.0.0.1:8000/api/deleteComponent", {
-        data: payload,
-        headers: { "Content-Type": "application/json" },
-      });
-      setResponse(res.data.message || "Xóa component thành công");
+      const res = await deleteComponentApi(payload);
+      if (!res.ok) {
+        setError(res.data?.detail || "Đã xảy ra lỗi khi xóa component");
+        return;
+      }
+      setResponse(res.data?.message || "Xóa component thành công");
       setComponentData({
         key: "",
         nbphase: "",
@@ -487,22 +512,22 @@ export default function Products() {
         shape: "",
       });
       setImages({
-        img1: { url: null, extension: 'jpg' },
-        img2: { url: null, extension: 'jpg' },
-        img3: { url: null, extension: 'jpg' },
+        img1: { url: null, extension: "jpg" },
+        img2: { url: null, extension: "jpg" },
+        img3: { url: null, extension: "jpg" },
       });
       setImageFiles({ img1: null, img2: null, img3: null });
       setDocuments({
         doc: { url: null, name: null, extension: null },
-        '2d': { url: null, name: null, extension: null },
-        '3d': { url: null, name: null, extension: null },
+        "2d": { url: null, name: null, extension: null },
+        "3d": { url: null, name: null, extension: null },
       });
-      setDocumentUploads({ doc: null, '2d': null, '3d': null });
+      setDocumentUploads({ doc: null, "2d": null, "3d": null });
       setComponentId("");
       setSearchNbphase("");
       setShouldSearch(false);
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Đã xảy ra lỗi khi kết nối với server");
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi kết nối với server");
     }
   };
 
@@ -527,7 +552,7 @@ export default function Products() {
       setError("Vui lòng nhập Angle hợp lệ");
       return;
     }
-    const resminiValue = parseInt(parseFloat(createData.resmini)/10);
+    const resminiValue = parseInt(parseFloat(createData.resmini) / 10);
     if (isNaN(resminiValue)) {
       setError("Vui lòng nhập Resmini hợp lệ");
       return;
@@ -555,10 +580,12 @@ export default function Products() {
     };
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/createComponent", payload, {
-        headers: { "Content-Type": "application/json" },
-      });
-      setResponse(res.data.message || "Thêm component thành công");
+      const res = await createComponentApi(payload);
+      if (!res.ok) {
+        setError(res.data?.detail || "Đã xảy ra lỗi khi thêm component");
+        return;
+      }
+      setResponse(res.data?.message || "Thêm component thành công");
       setCreateData({
         component_id: "",
         nbphase: "",
@@ -576,7 +603,7 @@ export default function Products() {
       setSearchNbphase("");
       setShouldSearch(false);
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || "Đã xảy ra lỗi khi kết nối với server");
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi khi kết nối với server");
     }
   };
 
@@ -588,107 +615,117 @@ export default function Products() {
         </CardHeader>
         <CardContent>
           {/* Search Form */}
-          <form onSubmit={(e) => { setShouldSearch(true); handleSearch(e); }} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="componentId">Component ID (Mã sản phẩm)</Label>
-                <Input
-                  id="componentId"
-                  name="componentId"
-                  value={componentId}
-                  onChange={handleSearchChange}
-                  placeholder="Nhập mã sản phẩm"
-                  required
-                />
+          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+            <form
+              onSubmit={(e) => {
+                setShouldSearch(true);
+                handleSearch(e);
+              }}
+              className="space-y-4 flex-1"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="componentId">Component ID (Mã sản phẩm)</Label>
+                  <Input
+                    id="componentId"
+                    name="componentId"
+                    value={componentId}
+                    onChange={handleSearchChange}
+                    placeholder="Nhập mã sản phẩm"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="searchNbphase">Per phases (Số pha)</Label>
+                  <Input
+                    id="searchNbphase"
+                    name="searchNbphase"
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={searchNbphase}
+                    onChange={handleSearchChange}
+                    placeholder="Nhập Số pha"
+                    required
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="searchNbphase">Per phases (Số pha)</Label>
-                <Input
-                  id="searchNbphase"
-                  name="searchNbphase"
-                  type="number"
-                  step="1"
-                  min="0"
-                  value={searchNbphase}
-                  onChange={handleSearchChange}
-                  placeholder="Nhập Số pha"
-                  required
-                />
+              <div className="flex">
+                <Button type="submit" className="w-full md:w-auto">
+                  Tìm kiếm
+                </Button>
               </div>
-            </div>
-            <div className="flex space-x-4">
-              <Button type="submit" className="w-full md:w-auto">Tìm kiếm</Button>
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button className="w-full md:w-auto">Thêm mới</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Thêm Component Mới</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleCreate} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        { label: "Component ID (Mã sản phẩm)", name: "component_id", type: "text" },
-                        { label: "Per phases (Số pha)", name: "nbphase", type: "number", step: "1" },
-                        { label: "Angle (Góc °)", name: "angle", type: "number", step: "1" },
-                        { label: "Force (N)", name: "resmini", type: "number", step: "1" },
-                        { label: "Thickness (mm)", name: "thickness", type: "text" },
-                        { label: "Width (mm)", name: "width", type: "text" },
-                        { label: "Poles (Số cực)", name: "poles", type: "text" },
-                        { label: "Shape (C, P, I, E)", name: "shape", type: "text" },
-                      ].map((field) => (
-                        <div key={field.name} className="space-y-2">
-                          <Label htmlFor={field.name}>{field.label}</Label>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            type={field.type}
-                            step={field.step}
-                            min={field.type === "number" ? "0" : undefined}
-                            value={createData[field.name]}
-                            onChange={handleCreateDataChange}
-                            placeholder={`Nhập ${field.label}`}
-                            required
-                          />
-                        </div>
-                      ))}
-                      <div className="space-y-2">
-                        <Label htmlFor="info">Thông tin sản phẩm</Label>
-                        <Textarea
-                          id="info"
-                          name="info"
-                          value={createData.info}
+            </form>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full md:w-auto self-start">Thêm mới</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[720px] md:max-w-[760px] p-6 space-y-4">
+                <DialogHeader>
+                  <DialogTitle>Thêm Component Mới</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCreate} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { label: "Component ID (Mã sản phẩm)", name: "component_id", type: "text" },
+                      { label: "Per phases (Số pha)", name: "nbphase", type: "number", step: "1" },
+                      { label: "Angle (Góc °)", name: "angle", type: "number", step: "1" },
+                      { label: "Force (N)", name: "resmini", type: "number", step: "1" },
+                      { label: "Thickness (mm)", name: "thickness", type: "text" },
+                      { label: "Width (mm)", name: "width", type: "text" },
+                      { label: "Poles (Số cực)", name: "poles", type: "text" },
+                      { label: "Shape (C, P, I, E)", name: "shape", type: "text" },
+                    ].map((field) => (
+                      <div key={field.name} className="space-y-2">
+                        <Label htmlFor={field.name}>{field.label}</Label>
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          type={field.type}
+                          step={field.step}
+                          min={field.type === "number" ? "0" : undefined}
+                          value={createData[field.name]}
                           onChange={handleCreateDataChange}
-                          placeholder="Nhập thông tin (ví dụ: mô tả, tính năng)"
+                          placeholder={`Nhập ${field.label}`}
                           required
-                          minLength={1}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="a_list">Danh sách giá trị A</Label>
-                        <Textarea
-                          id="a_list"
-                          name="a_list"
-                          value={createData.a_list}
-                          onChange={handleCreateDataChange}
-                          placeholder="Nhập danh sách giá trị A (ví dụ: 65, 75, 85)"
-                          required
-                          minLength={1}
-                        />
-                      </div>
+                    ))}
+                    <div className="space-y-2">
+                      <Label htmlFor="info">Thông tin sản phẩm</Label>
+                      <Textarea
+                        id="info"
+                        name="info"
+                        value={createData.info}
+                        onChange={handleCreateDataChange}
+                        placeholder="Nhập thông tin (ví dụ: mô tả, tính năng)"
+                        required
+                        minLength={1}
+                      />
                     </div>
-                    <div className="flex justify-end space-x-4">
-                      <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                        Hủy
-                      </Button>
-                      <Button type="submit">Thêm</Button>
+                    <div className="space-y-2">
+                      <Label htmlFor="a_list">Danh sách giá trị A</Label>
+                      <Textarea
+                        id="a_list"
+                        name="a_list"
+                        value={createData.a_list}
+                        onChange={handleCreateDataChange}
+                        placeholder="Nhập danh sách giá trị A (ví dụ: 65, 75, 85)"
+                        required
+                        minLength={1}
+                      />
                     </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </form>
+                  </div>
+                  <div className="flex justify-end space-x-4">
+                    <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                      Hủy
+                    </Button>
+                    <Button type="submit">Thêm</Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
 
           {/* Component Data Form */}
           {componentData.key && (
@@ -749,7 +786,7 @@ export default function Products() {
               <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-4">Quản lý ảnh sản phẩm</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {['img1', 'img2', 'img3'].map((imgKey) => (
+                  {["img1", "img2", "img3"].map((imgKey) => (
                     <div key={imgKey} className="space-y-2">
                       <Label>Ảnh {imgKey.slice(-1)} ({images[imgKey].extension.toUpperCase()})</Label>
                       <div className="border p-2 rounded">
@@ -791,7 +828,7 @@ export default function Products() {
               <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-4">Quản lý tài liệu sản phẩm</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {['doc', '2d', '3d'].map((docKey) => (
+                  {["doc", "2d", "3d"].map((docKey) => (
                     <div key={docKey} className="space-y-2">
                       <Label>Tài liệu {docKey.toUpperCase()} {documents[docKey].extension ? `(${documents[docKey].extension.toUpperCase()})` : ''}</Label>
                       <div className="border p-2 rounded">

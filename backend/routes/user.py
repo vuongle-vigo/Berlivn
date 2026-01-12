@@ -49,6 +49,7 @@ class UpdateUserRequest(BaseModel):
 	role: Optional[str] = None
 	is_active: Optional[int] = None
 	daily_search_limit: Optional[int] = None
+	daily_search_remaining: Optional[int] = None
 
 class UserResponse(BaseModel):
 	id: str
@@ -57,6 +58,7 @@ class UserResponse(BaseModel):
 	is_active: int
 	created_at: Optional[str] = None
 	daily_search_limit: Optional[int] = 20
+	daily_search_remaining: Optional[int] = 20
 	search_count: Optional[int] = 0
 	
 	# Company fields
@@ -160,6 +162,34 @@ def increment_search(user_id: str):
 		if not result["allowed"]:
 			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Daily search limit reached")
 			
+		return result
+	except HTTPException:
+		raise
+	except Exception:
+		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+@router.get("/{user_id}/daily_search_limit")
+def get_daily_search_limit(user_id: str):
+	try:
+		if not hasattr(user_model, "get_daily_search_limit"):
+			raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="get_daily_search_limit not implemented")
+		quota = user_model.get_daily_search_limit(user_id)
+		if quota is None:
+			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found or limit unavailable")
+		return quota
+	except HTTPException:
+		raise
+	except Exception:
+		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+@router.post("/{user_id}/decrement_search_limit")
+def decrement_daily_search_limit(user_id: str):
+	try:
+		if not hasattr(user_model, "decrement_daily_search_limit"):
+			raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="decrement_daily_search_limit not implemented")
+		result = user_model.decrement_daily_search_limit(user_id)
+		if not result:
+			raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot decrement daily search limit")
 		return result
 	except HTTPException:
 		raise

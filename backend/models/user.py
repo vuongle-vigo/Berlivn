@@ -2,6 +2,7 @@ from typing import Optional, Dict, Any, List
 import uuid
 from datetime import datetime
 from database.database import Database
+from models import log_query
 
 db = Database()
 
@@ -29,7 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL DEFAULT 'user',
   is_active INTEGER DEFAULT 1,
   daily_search_limit INTEGER DEFAULT 20,
-  search_count INTEGER DEFAULT 0,
+  daily_search_remaining INTEGER DEFAULT 20,
   last_search_date TEXT,
   last_login_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
@@ -75,48 +76,53 @@ def create_user(
 			id, email, password_hash, company_name, registration_number, activities, employee_count, 
 			company_phone, first_name, last_name, job_position, professional_address, 
 			postal_code, city, direct_phone, mobile_phone, 
-			activities_other, country, role, daily_search_limit
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+			activities_other, country, role, daily_search_limit, daily_search_remaining
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 	"""
 	params = (
 		user_id, email, password_hash, company_name, registration_number, activities, employee_count,
 		company_phone, first_name, last_name, job_position, professional_address,
 		postal_code, city, direct_phone, mobile_phone,
-		activities_other, country, role, daily_search_limit
+		activities_other, country, role, daily_search_limit, daily_search_limit
 	)
 	db.execute(sql, params, commit=True)
 	return user_id
 
+def _refresh_daily_quota_if_expired(user_id: str, row: Dict[str, Any]) -> Dict[str, Any]:
+	row_dict = dict(row)
+	limit = row_dict["daily_search_limit"] if row_dict["daily_search_limit"] is not None else 20
+	today = datetime.now().strftime("%Y-%m-%d")
+	if row_dict.get("last_search_date") != today:
+		db.execute(
+			"UPDATE users SET daily_search_remaining = ?, last_search_date = ?, updated_at = datetime('now') WHERE id = ?;",
+			(limit, today, user_id),
+			commit=True
+		)
+		row_dict["daily_search_remaining"] = limit
+		row_dict["last_search_date"] = today
+	return row_dict
+
 def check_and_increment_search(user_id: str) -> Dict[str, Any]:
-	"""
-	Kiểm tra và tăng số lượt search. Reset nếu sang ngày mới.
-	Trả về dict: {allowed: bool, remaining: int, limit: int}
-	"""
-	row = db.fetch_one("SELECT daily_search_limit, search_count, last_search_date FROM users WHERE id = ?;", (user_id,))
+	row = db.fetch_one(
+		"SELECT daily_search_limit, daily_search_remaining, last_search_date FROM users WHERE id = ?;",
+		(user_id,)
+	)
 	if not row:
 		return {"allowed": False, "remaining": 0, "limit": 0}
-	
+	row = _refresh_daily_quota_if_expired(user_id, row)
 	limit = row["daily_search_limit"] if row["daily_search_limit"] is not None else 20
-	count = row["search_count"] if row["search_count"] is not None else 0
-	last_date = row["last_search_date"]
-	
-	today = datetime.now().strftime("%Y-%m-%d")
-	
-	# Reset count if new day
-	if last_date != today:
-		count = 0
-		
-	if count >= limit:
+	remaining = row["daily_search_remaining"] if row["daily_search_remaining"] is not None else limit
+	if remaining <= 0:
 		return {"allowed": False, "remaining": 0, "limit": limit}
-	
-	new_count = count + 1
+	new_remaining = max(remaining - 1, 0)
+	today = datetime.now().strftime("%Y-%m-%d")
 	db.execute(
-		"UPDATE users SET search_count = ?, last_search_date = ? WHERE id = ?;", 
-		(new_count, today, user_id), 
+		"UPDATE users SET daily_search_remaining = ?, last_search_date = ?, updated_at = datetime('now') WHERE id = ?;",
+		(new_remaining, today, user_id),
 		commit=True
 	)
-	
-	return {"allowed": True, "remaining": limit - new_count, "limit": limit}
+	log_query.increment_daily_search_log(user_id)
+	return {"allowed": True, "remaining": new_remaining, "limit": limit}
 
 def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
 	return db.fetch_one("SELECT * FROM users WHERE id = ?;", (user_id,))
@@ -135,6 +141,12 @@ def update_user(user_id: str, **fields) -> bool:
 	if not fields:
 		return False
 	
+	if "daily_search_limit" in fields:
+		limit_value = fields["daily_search_limit"]
+		if limit_value is not None:
+			fields.setdefault("daily_search_remaining", limit_value)
+			fields.setdefault("last_search_date", datetime.now().strftime("%Y-%m-%d"))
+	
 	# Auto update updated_at
 	cols = ", ".join(f"{k}=?" for k in fields.keys())
 	cols += ", updated_at = datetime('now')"
@@ -152,3 +164,37 @@ def delete_user(user_id: str) -> bool:
 
 def list_users(limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
 	return db.fetch_all("SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?;", (limit, offset))
+
+def get_daily_search_limit(user_id: str) -> Optional[Dict[str, int]]:
+	row = db.fetch_one(
+		"SELECT daily_search_limit, daily_search_remaining, last_search_date FROM users WHERE id = ?;",
+		(user_id,)
+	)
+	if not row:
+		return None
+	row = _refresh_daily_quota_if_expired(user_id, row)
+	limit = row["daily_search_limit"] if row["daily_search_limit"] is not None else 20
+	remaining = row["daily_search_remaining"] if row["daily_search_remaining"] is not None else limit
+	return {"daily_search_limit": limit, "daily_search_remaining": remaining}
+
+def decrement_daily_search_limit(user_id: str) -> Optional[Dict[str, int]]:
+	row = db.fetch_one(
+		"SELECT daily_search_limit, daily_search_remaining, last_search_date FROM users WHERE id = ?;",
+		(user_id,)
+	)
+	if not row:
+		return None
+	row = _refresh_daily_quota_if_expired(user_id, row)
+	limit = row["daily_search_limit"] if row["daily_search_limit"] is not None else 20
+	remaining = row["daily_search_remaining"] if row["daily_search_remaining"] is not None else limit
+	if remaining <= 0:
+		return None
+	new_remaining = max(remaining - 1, 0)
+	today = datetime.now().strftime("%Y-%m-%d")
+	db.execute(
+		"UPDATE users SET daily_search_remaining = ?, last_search_date = ?, updated_at = datetime('now') WHERE id = ?;",
+		(new_remaining, today, user_id),
+		commit=True
+	)
+	log_query.increment_daily_search_log(user_id)
+	return {"daily_search_limit": limit, "daily_search_remaining": new_remaining}

@@ -22,11 +22,14 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UserDetailDialog from '@/components/UserDetailDialog';
-import { getAllUsers, updateUserAdmin, deleteUserProfile } from '@/lib/auth';
+import { getAllUsers, updateUserAdmin, deleteUserProfile } from '@/api/api';
 import { Eye } from 'lucide-react';
 
-export default function AdminDashboard() {
-  const { isAdmin, refreshProfile } = useAuth();
+export default function AdminDashboard({ isCurrentAdmin }: { isCurrentAdmin?: boolean }) {
+  const auth = useAuth();
+  const derivedIsAdmin = typeof auth.isAdmin === 'function' ? auth.isAdmin() : Boolean(auth.isAdmin);
+  const effectiveIsAdmin = isCurrentAdmin ?? derivedIsAdmin;
+  const { refreshProfile } = auth;
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,10 +46,10 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    if (isAdmin) {
+    if (effectiveIsAdmin) {
       fetchUsers();
     }
-  }, [isAdmin]);
+  }, [effectiveIsAdmin]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -132,7 +135,7 @@ export default function AdminDashboard() {
     setEditingUser(null);
   };
 
-  if (!isAdmin) {
+  if (!effectiveIsAdmin) {
     return (
       <div className="p-8">
         <Alert variant="destructive">

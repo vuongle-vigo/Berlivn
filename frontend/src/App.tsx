@@ -95,7 +95,7 @@ function App() {
                   Electrical Engineering Suite
                 </h1>
                 <p className="text-xs text-gray-500">
-                  Professional Busbar Design & Analysis
+                  {/* Professional Busbar Design & Analysis */}
                 </p>
               </div>
             </div>
@@ -108,7 +108,7 @@ function App() {
                     ? `${profile.first_name} ${profile.last_name}` 
                     : (profile?.full_name || user.email)}
                 </span>
-                {isAdmin ? (
+                {/* {isAdmin ? (
                   <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">
                     Admin
                   </span>
@@ -116,7 +116,7 @@ function App() {
                   <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
                     Searches: {Math.max(0, searchStats.limit - searchStats.count)}/{searchStats.limit}
                   </span>
-                )}
+                )} */}
               </div>
 
               <button
@@ -223,8 +223,12 @@ function App() {
           {activeTab === "force" && <ForceCalculator />}
           {activeTab === "products" && isAdmin && <Products />}
           {activeTab === "profile" && <UserProfile />}
-          {activeTab === "analytics" && isAdmin && <Analytics />}
-          {activeTab === "admin" && isAdmin && <AdminDashboard />}
+          {activeTab === "analytics" && isAdmin && (
+            <Analytics isCurrentAdmin={isAdmin} />
+          )}
+          {activeTab === "admin" && isAdmin && (
+            <AdminDashboard isCurrentAdmin={isAdmin} />
+            )}
         </div>
       </main>
 

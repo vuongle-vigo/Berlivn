@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { fakeAuth, DailyStats, UserActivity } from '@/lib/fakeAuth';
+import { getAnalytics } from '@/api/api';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -13,29 +13,73 @@ import {
 } from '@/components/ui/table';
 import { BarChart3, Users, Search, TrendingUp } from 'lucide-react';
 
-export default function Analytics() {
-  const { isAdmin } = useAuth();
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
-  const [totalStats, setTotalStats] = useState({
-    totalUsers: 0,
-    activeUsers: 0,
-    totalSearches: 0,
-    todaySearches: 0,
+interface AnalyticsProps {
+  isCurrentAdmin?: boolean;
+}
+
+interface AnalyticsDailyStat {
+  date: string;
+  total_searches: number;
+}
+
+interface AnalyticsUserActivity {
+  user_id: string;
+  user_name: string;
+  email: string;
+  total_searches: number;
+  last_active: string | null;
+}
+
+interface AnalyticsTotals {
+  total_users: number;
+  active_users: number;
+  total_searches: number;
+  today_searches: number;
+}
+
+export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
+  const auth = useAuth();
+  const { loading } = auth;
+  const derivedIsAdmin = typeof auth.isAdmin === "function" ? auth.isAdmin() : Boolean(auth.isAdmin);
+  const isAdmin = isCurrentAdmin ?? derivedIsAdmin;
+  const [dailyStats, setDailyStats] = useState<AnalyticsDailyStat[]>([]);
+  const [userActivity, setUserActivity] = useState<AnalyticsUserActivity[]>([]);
+  const [totalStats, setTotalStats] = useState<AnalyticsTotals>({
+    total_users: 0,
+    active_users: 0,
+    total_searches: 0,
+    today_searches: 0,
   });
   const [timeRange, setTimeRange] = useState(7);
+  const [error, setError] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
-    if (isAdmin) {
-      loadAnalytics();
-    }
+    if (!isAdmin) return;
+    const fetchAnalytics = async () => {
+      setIsFetching(true);
+      setError(null);
+      try {
+        const res = await getAnalytics(timeRange);
+        if (res.ok && res.data) {
+          setDailyStats(res.data.daily_stats || []);
+          setTotalStats(res.data.total_stats || totalStats);
+          setUserActivity(res.data.user_activity || []);
+        } else {
+          setError(res.data?.detail || "Không thể tải dữ liệu thống kê");
+        }
+      } catch {
+        setError("Không thể tải dữ liệu thống kê");
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    fetchAnalytics();
   }, [isAdmin, timeRange]);
 
-  const loadAnalytics = () => {
-    setDailyStats(fakeAuth.getDailyStats(timeRange));
-    setUserActivity(fakeAuth.getUserActivity());
-    setTotalStats(fakeAuth.getTotalStats());
-  };
+  if (loading) {
+    return <div className="p-8">Đang tải quyền truy cập...</div>;
+  }
 
   if (!isAdmin) {
     return (
@@ -47,7 +91,7 @@ export default function Analytics() {
     );
   }
 
-  const maxSearches = Math.max(...dailyStats.map(s => s.total_searches), 1);
+  const maxSearches = dailyStats.reduce((max, stat) => Math.max(max, stat.total_searches), 0) || 1;
 
   return (
     <div className="space-y-6">
@@ -87,13 +131,21 @@ export default function Analytics() {
         </div>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {isFetching && !error && <div className="p-4 text-sm text-gray-500">Đang tải dữ liệu...</div>}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="border-l-4 border-l-blue-500">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Tổng người dùng</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.totalUsers}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.total_users}</p>
               </div>
               <div className="p-3 bg-blue-50 rounded-full">
                 <Users className="w-8 h-8 text-blue-600" />
@@ -107,7 +159,7 @@ export default function Analytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Người dùng hoạt động</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.activeUsers}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.active_users}</p>
               </div>
               <div className="p-3 bg-green-50 rounded-full">
                 <TrendingUp className="w-8 h-8 text-green-600" />
@@ -121,7 +173,7 @@ export default function Analytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Tổng lượt tra cứu</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.totalSearches}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.total_searches}</p>
               </div>
               <div className="p-3 bg-purple-50 rounded-full">
                 <Search className="w-8 h-8 text-purple-600" />
@@ -135,7 +187,7 @@ export default function Analytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Tra cứu hôm nay</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.todaySearches}</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{totalStats.today_searches}</p>
               </div>
               <div className="p-3 bg-orange-50 rounded-full">
                 <BarChart3 className="w-8 h-8 text-orange-600" />
@@ -164,7 +216,7 @@ export default function Analytics() {
                   <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-red-500 to-red-600 h-full rounded-full flex items-center justify-end pr-3 transition-all duration-500"
-                      style={{ width: `${(stat.total_searches / maxSearches) * 100}%` }}
+                      style={{ width: `${maxSearches ? (stat.total_searches / maxSearches) * 100 : 0}%` }}
                     >
                       {stat.total_searches > 0 && (
                         <span className="text-white text-xs font-semibold">

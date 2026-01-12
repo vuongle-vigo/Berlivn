@@ -44,7 +44,9 @@ async def send_asp_excel(W: float, T: float, B: int, Angle: float, a: float, Icc
 @router.get("/getComponents")
 async def get_components(component_id: Optional[str] = None, nbphase: Optional[int] = None):
     try:
+        print(component_id, nbphase)
         components, component_list = get_components_service(component_id, nbphase)
+        print(components, component_list)
         if components and component_list:
             return {"components": components, "components_list": component_list}
         raise HTTPException(status_code=404, detail="Component not found")

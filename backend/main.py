@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from routes.auth import router as auth_router
 from routes.query_busbar import router as query_busbar_router
 from routes.user import router as user_router
+from routes.log_query import router as log_query_router
 from fastapi.middleware.cors import CORSMiddleware
 from models.user import init_user_table  # sửa tại đây
 
@@ -24,6 +25,7 @@ def create_app():
     app.include_router(auth_router)
     app.include_router(query_busbar_router)
     app.include_router(user_router)
+    app.include_router(log_query_router)
     return app
 
 

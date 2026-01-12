@@ -80,7 +80,7 @@ class UserResponse(BaseModel):
 	direct_phone: str
 	mobile_phone: str
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("", response_model=List[UserResponse])
 def list_users():
 	try:
 		if not hasattr(user_model, "list_users"):

@@ -5,7 +5,7 @@ import {
   decrementDailySearchLimit,
   queryBusbar,
   getImageBlobByPath,
-  getFileLink
+  getFileLink,
 } from "@/api/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -31,9 +31,13 @@ interface BusbarCalculatorProps {
   isCurrentAdmin?: boolean;
 }
 
-export default function BusbarCalculator({ onSearchComplete, currentUser, isCurrentAdmin }: BusbarCalculatorProps) {
+export default function BusbarCalculator({
+  onSearchComplete,
+  currentUser,
+  isCurrentAdmin,
+}: BusbarCalculatorProps) {
   const { user: authUser, isAdmin: authIsAdmin } = useAuth();
-  
+
   // Prioritize props from App.tsx which handles local storage fallback
   const user = currentUser || authUser;
   const isAdmin = isCurrentAdmin !== undefined ? isCurrentAdmin : authIsAdmin;
@@ -55,7 +59,8 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
   const [icc, setIcc] = useState(12);
   const [ipk, setIpk] = useState(0);
   const [spaceBetweenPhases, setSpaceBetweenPhases] = useState(0);
-  const [distanceBetweenFixingPoints, setDistanceBetweenFixingPoints] = useState(0);
+  const [distanceBetweenFixingPoints, setDistanceBetweenFixingPoints] =
+    useState(0);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showOnlyWithImg1, setShowOnlyWithImg1] = useState(false);
@@ -69,9 +74,10 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
       if (user?.id && !isAdmin) {
         const res = await getDailySearchLimit(user.id);
         if (res.ok && res.data) {
-          const limit = Number(res.data.daily_search_limit ?? 0);
           const remaining = Number(
-            res.data.daily_search_remaining ?? res.data.daily_search_limit ?? 0
+            res.data.daily_search_remaining ??
+              res.data.daily_search_limit ??
+              0
           );
           setRemainingSearches(remaining);
           setCanSearch(remaining > 0);
@@ -100,13 +106,17 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
     return (quantity * price).toFixed(2);
   };
 
+  // NOTE: kept your original behavior (filter those that DO NOT have img1Article)
   const filteredProducts = showOnlyWithImg1
     ? products.filter((product) => !product.additionalInfo?.[0]?.img1Article)
     : products;
 
   const indexOfLastProduct = currentPage * itemsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - itemsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = filteredProducts.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const handlePageChange = (page: number) => {
@@ -114,7 +124,8 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
   };
 
   const handleIccChange = (value: string) => {
-    const cleanedValue = value.replace(/^0+/, "").replace(/[^\d.]/g, "") || "0";
+    const cleanedValue =
+      value.replace(/^0+/, "").replace(/[^\d.]/g, "") || "0";
     setInputValue(cleanedValue);
     const numericValue = Math.min(Math.max(Number(cleanedValue), 12), 200);
     setIcc(numericValue || 0);
@@ -135,10 +146,38 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
         options = ["12", "18", "25"];
         break;
       case "5":
-        options = ["12", "15", "20", "25", "30", "32", "40", "50", "60", "63", "80", "100", "125", "150"];
+        options = [
+          "12",
+          "15",
+          "20",
+          "25",
+          "30",
+          "32",
+          "40",
+          "50",
+          "60",
+          "63",
+          "80",
+          "100",
+          "125",
+          "150",
+        ];
         break;
       case "10":
-        options = ["10", "20", "30", "40", "50", "60", "80", "100", "120", "150", "160", "200"];
+        options = [
+          "10",
+          "20",
+          "30",
+          "40",
+          "50",
+          "60",
+          "80",
+          "100",
+          "120",
+          "150",
+          "160",
+          "200",
+        ];
         break;
       default:
         options = [];
@@ -155,32 +194,12 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
 
     setLoading(true);
     try {
-      // if (!isAdmin && user?.id) {
-      //   const res = await incrementUserSearch(user.id);
-      //   if (res.ok && res.data) {
-      //     setRemainingSearches(res.data.remaining);
-      //     setCanSearch(res.data.allowed);
-      //     if (onSearchComplete) onSearchComplete();
-      //     if (!res.data.allowed) {
-      //        alert("Bạn đã hết lượt tra cứu trong ngày.");
-      //        setLoading(false);
-      //        return;
-      //     }
-      //   }
-      // }
-
       let calculatedIpk = 0;
-      if (icc <= 5) {
-        calculatedIpk = icc * 1.5;
-      } else if (icc <= 10) {
-        calculatedIpk = icc * 1.7;
-      } else if (icc <= 20) {
-        calculatedIpk = icc * 2;
-      } else if (icc <= 50) {
-        calculatedIpk = icc * 2.1;
-      } else {
-        calculatedIpk = icc * 2.2;
-      }
+      if (icc <= 5) calculatedIpk = icc * 1.5;
+      else if (icc <= 10) calculatedIpk = icc * 1.7;
+      else if (icc <= 20) calculatedIpk = icc * 2;
+      else if (icc <= 50) calculatedIpk = icc * 2.1;
+      else calculatedIpk = icc * 2.2;
       setIpk(calculatedIpk);
 
       const calculatedA = 75;
@@ -197,11 +216,13 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           shape,
           icc,
         });
+
         if (response.ok && response.data) {
           setProducts(response.data.products || []);
           if (response.data.products && response.data.products.length > 0) {
             handleRowClick(response.data.products[0]);
           }
+
           if (!isAdmin && user?.id) {
             const decRes = await decrementDailySearchLimit(user.id);
             if (decRes.ok && decRes.data) {
@@ -222,13 +243,14 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
         console.error("Error querying busbar products:", error);
         setLoading(false);
         return;
-      } 
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
       }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
   };
+
   const handleRowClick = async (product: any) => {
     setSelectedProduct(product);
 
@@ -243,7 +265,9 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
       return;
     }
 
-    const imageBase = `/products/${product.component_id}-${additionalInfo.resmini * 10}-${additionalInfo.nbphase}`;
+    const imageBase = `/products/${product.component_id}-${
+      additionalInfo.resmini * 10
+    }-${additionalInfo.nbphase}`;
     const remoteImg1Url = `https://eriflex-configurator.nvent.com/eriflex/design/photo_articles/${additionalInfo.img1Article}.jpg`;
     const remoteImg2Url = `https://eriflex-configurator.nvent.com/eriflex/design/photo_articles/${additionalInfo.img2Article}.jpg`;
 
@@ -253,10 +277,9 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
       remoteFallbackUrl: string,
       setImage: (url: string) => void
     ) => {
-      const extensions = ['jpg', 'png'];
+      const extensions = ["jpg", "png"];
       for (const ext of extensions) {
         const relativePath = `${basePath}-${index}.${ext}`;
-        // Use centralized API instead of direct axios call
         const { ok, blob } = await getImageBlobByPath(relativePath);
         if (ok && blob) {
           const blobUrl = URL.createObjectURL(blob);
@@ -279,61 +302,80 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
 
   const generateFileLink = (product: any, docType: string) => {
     if (!product?.component_id || !product?.additionalInfo?.[0]?.resmini) {
-      return '#';
+      return "#";
     }
     const componentId = product.component_id;
     const resmini = product.additionalInfo[0].resmini * 10;
     const nbphase = product.additionalInfo[0].nbphase;
-    const suffix = docType === 'doc' ? 'doc' : docType === '2d' ? '2d' : '3d';
-    const extension = docType === '3d' ? 'stp' : 'pdf';
+    const suffix = docType === "doc" ? "doc" : docType === "2d" ? "2d" : "3d";
+    const extension = docType === "3d" ? "stp" : "pdf";
     const filePath = `/documents/${componentId}-${resmini}-${nbphase}-${suffix}.${extension}`;
-    
+
     return getFileLink(filePath);
   };
 
   return (
-    <div className="grid grid-cols-[300px_1fr] gap-6">
+    // ✅ Responsive layout: 1 col on small screens, 2 cols on lg+
+    <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
       <div className="flex flex-col gap-4 bg-white p-6 rounded-xl shadow-lg border border-gray-200 h-fit">
         <h2 className="text-xl font-bold text-red-600 mb-2">Busbar Support</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Per Phase</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Per Phase
+            </label>
             <Select value={perPhase} onValueChange={setPerPhase}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Per Phase" />
               </SelectTrigger>
               <SelectContent>
-                {["1 Busbar", "2 Busbar", "3 Busbar", "4 Busbar", "5 Busbar"].map((val) => (
-                  <SelectItem key={val} value={val}>{val}</SelectItem>
-                ))}
+                {["1 Busbar", "2 Busbar", "3 Busbar", "4 Busbar", "5 Busbar"].map(
+                  (val) => (
+                    <SelectItem key={val} value={val}>
+                      {val}
+                    </SelectItem>
+                  )
+                )}
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Thickness</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Thickness
+              </label>
               <Select value={thickness} onValueChange={handleThicknessChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {["2", "4", "5", "10"].map((val) => (
-                    <SelectItem key={val} value={val}>{val}</SelectItem>
+                    <SelectItem key={val} value={val}>
+                      {val}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Width</label>
-              <Select value={width} onValueChange={setWidth} disabled={widthOptions.length === 0}>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Width
+              </label>
+              <Select
+                value={width}
+                onValueChange={setWidth}
+                disabled={widthOptions.length === 0}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {widthOptions.map((option) => (
-                    <SelectItem key={option} value={option}>{option}</SelectItem>
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -341,10 +383,15 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Poles</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Poles
+            </label>
             <div className="flex gap-2">
               {["Bi", "Three", "Four"].map((pole) => (
-                <label key={pole} className="flex items-center gap-2 cursor-pointer">
+                <label
+                  key={pole}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
                   <input
                     type="radio"
                     name="poles"
@@ -360,11 +407,18 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Shape</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Shape
+            </label>
             <div className="grid grid-cols-4 gap-2">
               {["C", "P", "I", "E"].map((s) => (
-                <label key={s} className="flex flex-col items-center cursor-pointer border rounded p-2 hover:bg-gray-50">
-                  <div className="text-2xl font-bold text-gray-400 mb-1">{s}</div>
+                <label
+                  key={s}
+                  className="flex flex-col items-center cursor-pointer border rounded p-2 hover:bg-gray-50"
+                >
+                  <div className="text-2xl font-bold text-gray-400 mb-1">
+                    {s}
+                  </div>
                   <input
                     type="radio"
                     name="shape"
@@ -379,7 +433,9 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Icc3 (kA effective)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Icc3 (kA effective)
+            </label>
             <input
               type="text"
               value={inputValue}
@@ -390,7 +446,9 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Ipk (kA peak)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Ipk (kA peak)
+            </label>
             <input
               type="number"
               value={ipk.toFixed(2)}
@@ -400,7 +458,9 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Space between phases (A)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Space between phases (A)
+            </label>
             <Select
               value={spaceBetweenPhases.toString()}
               onValueChange={(value) => setSpaceBetweenPhases(Number(value))}
@@ -421,11 +481,15 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Distance between fixing points (B)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Distance between fixing points (B)
+            </label>
             <input
               type="number"
               value={distanceBetweenFixingPoints}
-              onChange={(e) => setDistanceBetweenFixingPoints(Number(e.target.value))}
+              onChange={(e) =>
+                setDistanceBetweenFixingPoints(Number(e.target.value))
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -433,7 +497,8 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
           {!isAdmin && (
             <Alert>
               <AlertDescription className="text-sm">
-                Số lượt tra cứu còn lại hôm nay: <strong>{remainingSearches}</strong>
+                Số lượt tra cứu còn lại hôm nay:{" "}
+                <strong>{remainingSearches}</strong>
               </AlertDescription>
             </Alert>
           )}
@@ -455,7 +520,7 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 min-w-0">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl shadow-lg">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -468,17 +533,32 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
                 N° {selectedProduct?.component_id || "No Product Selected"}
               </h2>
               <p className="text-lg text-gray-700 mb-4">
-                Designation: {selectedProduct?.additionalInfo?.[0]?.info || "No Product Selected"}
+                Designation:{" "}
+                {selectedProduct?.additionalInfo?.[0]?.info ||
+                  "No Product Selected"}
               </p>
               <hr className="mb-4" />
               <p className="text-sm text-gray-600 mb-4">
                 Data and Calculations in accordance with IEC 61 439
               </p>
 
-              <div className="flex gap-4 mb-6">
-                <img src={image1} alt="Image 1" className="w-64 h-48 object-contain border rounded" />
-                <img src={image2} alt="Image 2" className="w-64 h-48 object-contain border rounded" />
-                <img src={image3} alt="Image 3" className="w-64 h-48 object-contain border rounded" />
+              {/* ✅ Responsive images */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+                <img
+                  src={image1}
+                  alt="Image 1"
+                  className="w-full h-48 object-contain border rounded"
+                />
+                <img
+                  src={image2}
+                  alt="Image 2"
+                  className="w-full h-48 object-contain border rounded"
+                />
+                <img
+                  src={image3}
+                  alt="Image 3"
+                  className="w-full h-48 object-contain border rounded"
+                />
               </div>
 
               <BusbarCanvas
@@ -487,89 +567,173 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
                     ? Math.ceil(selectedProduct.additionalInfo[0].L / 4).toString()
                     : "N/A"
                 }
-                centerValue={selectedProduct?.additionalInfo?.[0]?.L?.toString() || "N/A"}
+                centerValue={
+                  selectedProduct?.additionalInfo?.[0]?.L?.toString() || "N/A"
+                }
               />
             </div>
 
             <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
               {filteredProducts.length > 0 ? (
                 <>
-                  <div className="mb-4">
+                  <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
                     <button
                       onClick={() => setShowOnlyWithImg1(!showOnlyWithImg1)}
-                      className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                      className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 w-full sm:w-auto"
                     >
-                      {showOnlyWithImg1 ? "Show All Products" : "Show BERLIVN Products"}
+                      {showOnlyWithImg1
+                        ? "Show All Products"
+                        : "Show BERLIVN Products"}
                     </button>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
+                  {/* ✅ Scroll container with viewport-based max height */}
+                  <div className="overflow-auto max-h-[calc(100vh-260px)] rounded-lg border">
+                    <Table className="min-w-[900px] table-fixed">
+                      {/* ✅ Sticky header */}
+                      <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>
-                          <TableHead>Component ID</TableHead>
-                          <TableHead>Product Name</TableHead>
-                          <TableHead>A (mm)</TableHead>
-                          <TableHead>L (mm)</TableHead>
-                          <TableHead>L' (mm)</TableHead>
-                          <TableHead>Angle</TableHead>
-                          <TableHead>Quantity</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Total</TableHead>
-                          <TableHead>Doc</TableHead>
-                          <TableHead>2D</TableHead>
-                          <TableHead>3D</TableHead>
+                          <TableHead className="w-32">Component ID</TableHead>
+
+                          {/* ✅ Fixed width + will truncate in cells */}
+                          <TableHead className="w-[320px]">
+                            Product Name
+                          </TableHead>
+
+                          <TableHead className="w-24 text-center">
+                            A (mm)
+                          </TableHead>
+                          <TableHead className="w-24 text-center">
+                            L (mm)
+                          </TableHead>
+
+                          {/* ✅ Hide some columns on smaller screens */}
+                          <TableHead className="hidden xl:table-cell w-24 text-center">
+                            L&apos; (mm)
+                          </TableHead>
+                          <TableHead className="hidden xl:table-cell w-24 text-center">
+                            Angle
+                          </TableHead>
+
+                          <TableHead className="w-[140px] text-center">
+                            Quantity
+                          </TableHead>
+                          <TableHead className="w-[140px] text-center">
+                            Price
+                          </TableHead>
+                          <TableHead className="w-28 text-center">
+                            Total
+                          </TableHead>
+
+                          <TableHead className="hidden lg:table-cell w-16 text-center">
+                            Doc
+                          </TableHead>
+                          <TableHead className="hidden lg:table-cell w-16 text-center">
+                            2D
+                          </TableHead>
+                          <TableHead className="hidden lg:table-cell w-16 text-center">
+                            3D
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
+
                       <TableBody>
                         {currentProducts.map((product: any) => (
                           <TableRow
                             key={product.id}
                             className={`cursor-pointer ${
-                              selectedProduct?.id === product.id ? "bg-yellow-100" : ""
+                              selectedProduct?.id === product.id
+                                ? "bg-yellow-100"
+                                : ""
                             }`}
                             onClick={() => handleRowClick(product)}
                           >
-                            <TableCell>{product.component_id}</TableCell>
-                            <TableCell>{product.additionalInfo?.[0]?.info || "N/A"}</TableCell>
-                            <TableCell>{product.additionalInfo?.[0]?.Amini || "N/A"}</TableCell>
-                            <TableCell>{product.additionalInfo?.[0]?.L || "N/A"}</TableCell>
-                            <TableCell>
+                            <TableCell className="w-32">
+                              {product.component_id}
+                            </TableCell>
+
+                            <TableCell className="w-[320px]">
+                              <div
+                                className="truncate"
+                                title={product.additionalInfo?.[0]?.info || ""}
+                              >
+                                {product.additionalInfo?.[0]?.info || "N/A"}
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="w-24 text-center">
+                              {product.additionalInfo?.[0]?.Amini || "N/A"}
+                            </TableCell>
+                            <TableCell className="w-24 text-center">
+                              {product.additionalInfo?.[0]?.L || "N/A"}
+                            </TableCell>
+
+                            <TableCell className="hidden xl:table-cell w-24 text-center">
                               {product.additionalInfo?.[0]?.L
                                 ? Math.ceil(product.additionalInfo[0].L / 4)
                                 : "N/A"}
                             </TableCell>
-                            <TableCell>{product.additionalInfo?.[0]?.angle || "N/A"}</TableCell>
-                            <TableCell>
+
+                            <TableCell className="hidden xl:table-cell w-24 text-center">
+                              {product.additionalInfo?.[0]?.angle || "N/A"}
+                            </TableCell>
+
+                            <TableCell className="w-[140px]">
                               <input
                                 type="number"
                                 value={quantities[product.id] || ""}
-                                onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                                className="w-20 px-2 py-1 border rounded"
+                                onChange={(e) =>
+                                  handleQuantityChange(
+                                    product.id,
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full px-3 py-2 border rounded text-sm text-center"
                               />
                             </TableCell>
-                            <TableCell>
+
+                            <TableCell className="w-[140px]">
                               <input
                                 type="number"
                                 value={prices[product.id] || ""}
-                                onChange={(e) => handlePriceChange(product.id, e.target.value)}
-                                className="w-20 px-2 py-1 border rounded"
+                                onChange={(e) =>
+                                  handlePriceChange(product.id, e.target.value)
+                                }
+                                className="w-full px-3 py-2 border rounded text-sm text-right"
                               />
                             </TableCell>
-                            <TableCell>{calculateTotal(product.id)}</TableCell>
-                            <TableCell>
-                              <a href={generateFileLink(product, 'doc')} className="text-blue-600 hover:underline">
-                                Download
+
+                            <TableCell className="w-28 text-center">
+                              {calculateTotal(product.id)}
+                            </TableCell>
+
+                            <TableCell className="hidden lg:table-cell w-16 text-center">
+                              <a
+                                href={generateFileLink(product, "doc")}
+                                className="text-blue-600 hover:text-blue-800 inline-flex items-center justify-center w-full"
+                                aria-label="Download DOC"
+                              >
+                                <span aria-hidden>⬇</span>
                               </a>
                             </TableCell>
-                            <TableCell>
-                              <a href={generateFileLink(product, '2d')} className="text-blue-600 hover:underline">
-                                Download
+
+                            <TableCell className="hidden lg:table-cell w-16 text-center">
+                              <a
+                                href={generateFileLink(product, "2d")}
+                                className="text-blue-600 hover:text-blue-800 inline-flex items-center justify-center w-full"
+                                aria-label="Download 2D"
+                              >
+                                <span aria-hidden>⬇</span>
                               </a>
                             </TableCell>
-                            <TableCell>
-                              <a href={generateFileLink(product, '3d')} className="text-blue-600 hover:underline">
-                                Download
+
+                            <TableCell className="hidden lg:table-cell w-16 text-center">
+                              <a
+                                href={generateFileLink(product, "3d")}
+                                className="text-blue-600 hover:text-blue-800 inline-flex items-center justify-center w-full"
+                                aria-label="Download 3D"
+                              >
+                                <span aria-hidden>⬇</span>
                               </a>
                             </TableCell>
                           </TableRow>
@@ -578,7 +742,7 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
                     </Table>
                   </div>
 
-                  <div className="flex justify-center items-center mt-4 gap-2">
+                  <div className="flex flex-wrap justify-center items-center mt-4 gap-2">
                     {Array.from({ length: totalPages }, (_, index) => (
                       <button
                         key={index}
@@ -595,7 +759,9 @@ export default function BusbarCalculator({ onSearchComplete, currentUser, isCurr
                   </div>
                 </>
               ) : (
-                <p className="text-center text-lg text-gray-500">No products found.</p>
+                <p className="text-center text-lg text-gray-500">
+                  No products found.
+                </p>
               )}
             </div>
           </>

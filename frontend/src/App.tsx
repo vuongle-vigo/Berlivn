@@ -46,6 +46,12 @@ function App() {
     fetchSearchStats();
   }, [fetchSearchStats, activeTab]);
 
+  useEffect(() => {
+    if (!isAdmin && ["force", "products", "analytics", "admin"].includes(activeTab)) {
+      setActiveTab("busbar");
+    }
+  }, [isAdmin, activeTab]);
+
   const handleSignOut = () => {
     localStorage.removeItem('user');
     setLocalUser(null);
@@ -55,12 +61,11 @@ function App() {
 
   const tabs = [
     { id: "busbar", label: "Busbar Design", icon: Calculator },
-    { id: "force", label: "Force Analysis", icon: Zap },
     { id: "profile", label: "Profile", icon: UserCircle },
   ];
 
   if (isAdmin) {
-    // Insert Products before Profile for admins to maintain order
+    tabs.splice(1, 0, { id: "force", label: "Force Analysis", icon: Zap });
     tabs.splice(2, 0, { id: "products", label: "Products", icon: Package });
     tabs.push({ id: "analytics", label: "Analytics", icon: BarChart3 });
     tabs.push({ id: "admin", label: "User Management", icon: Users });
@@ -220,7 +225,7 @@ function App() {
               isCurrentAdmin={isAdmin}
             />
           )}
-          {activeTab === "force" && <ForceCalculator />}
+          {activeTab === "force" && isAdmin && <ForceCalculator />}
           {activeTab === "products" && isAdmin && <Products />}
           {activeTab === "profile" && <UserProfile />}
           {activeTab === "analytics" && isAdmin && (

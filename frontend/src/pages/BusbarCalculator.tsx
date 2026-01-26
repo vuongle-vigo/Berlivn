@@ -315,8 +315,8 @@ export default function BusbarCalculator({
   };
 
   return (
-    // ✅ Responsive layout: 1 col on small screens, 2 cols on lg+
-    <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+    // ✅ Responsive layout: form stays on the far left with adaptive width
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(260px,32vw)_1fr] xl:grid-cols-[clamp(300px,26vw,380px)_1fr]">
       <div className="flex flex-col gap-4 bg-white p-6 rounded-xl shadow-lg border border-gray-200 h-fit">
         <h2 className="text-xl font-bold text-red-600 mb-2">Busbar Support</h2>
 

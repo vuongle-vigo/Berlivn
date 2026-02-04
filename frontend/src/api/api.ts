@@ -367,6 +367,29 @@ export async function deleteUserProfile(userId: string, token?: string) {
     : { data: null, error: new Error(res.data?.detail || 'Failed to delete user') };
 }
 
+export async function calcExcel(params: {
+  W: number;
+  T: number;
+  B: number;
+  Angle: number;
+  a: number;
+  Icc: number;
+  Force: number;
+  NbrePhase: number;
+}) {
+  const url = `${API_BASE}/calcExcel`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    const data = await safeJson(res);
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    return { ok: false, status: 0, data: null, error: err };
+  }
+}
 
 export default {
   login,

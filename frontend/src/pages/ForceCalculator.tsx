@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Zap, TrendingUp, AlertCircle } from "lucide-react";
+import { calcExcel } from "../api/api";
 
 export default function ForceCalculator() {
   const [formData, setFormData] = useState({
@@ -10,7 +11,7 @@ export default function ForceCalculator() {
     distancePhasePhase: "",
     icc: "",
     force: "",
-    poles: "3",
+    NbrePhase: "3",
   });
 
   const [result, setResult] = useState<number | null>(null);
@@ -23,9 +24,9 @@ export default function ForceCalculator() {
   };
 
   const calculateForce = () => {
-    const { width, thickness, busbarsPerPhase, angle, distancePhasePhase, icc, force, poles } = formData;
+    const { width, thickness, busbarsPerPhase, angle, distancePhasePhase, icc, force, NbrePhase } = formData;
 
-    if (!width || !thickness || !busbarsPerPhase || !angle || !distancePhasePhase || !icc || !force) {
+    if (!width || !thickness || !busbarsPerPhase || !angle || !distancePhasePhase || !icc || !force || !NbrePhase) {
       setError("Please fill in all required fields");
       return;
     }
@@ -33,24 +34,50 @@ export default function ForceCalculator() {
     setIsCalculating(true);
     setError(null);
 
-    setTimeout(() => {
-      const w = parseFloat(width);
-      const t = parseFloat(thickness);
-      const b = parseFloat(busbarsPerPhase);
-      const a = parseFloat(distancePhasePhase);
-      const iccVal = parseFloat(icc);
-      const forceVal = parseFloat(force);
-      const angleVal = parseFloat(angle);
-      const polesVal = parseFloat(poles);
+    setTimeout(async () => {
+      try {
+        setIsCalculating(true);
 
-      const mockCalculation =
-        Math.sqrt((w * t * b * forceVal) / (iccVal * a)) *
-        (1 + angleVal / 90) *
-        (polesVal / 3);
+        const w = parseFloat(width);
+        const t = parseFloat(thickness);
+        const b = parseFloat(busbarsPerPhase);
+        const a = parseFloat(distancePhasePhase);
+        const iccVal = parseFloat(icc);
+        const forceVal = parseFloat(force);
+        const angleVal = parseFloat(angle);
+        const polesVal = parseFloat(NbrePhase);
 
-      setResult(Math.round(mockCalculation * 100));
-      setIsCalculating(false);
-    }, 800);
+        const result = await calcExcel({
+          W: w,
+          T: t,
+          B: b,
+          Angle: angleVal,
+          a: a,
+          Icc: iccVal,
+          Force: forceVal,
+          NbrePhase: polesVal
+        });
+
+        console.log("Calculation result:", result);
+
+        const L = result?.data?.L;
+        if (!Number.isFinite(L)) {
+          setError("Calculation failed. Please check your inputs.");
+          setResult(null);
+        } else {
+          setResult(L);
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Unexpected error during calculation.");
+        setResult(null);
+      } finally {
+        setIsCalculating(false);
+      }
+    }, 500);
+
+
+    
   };
 
   const fields = [
@@ -79,7 +106,7 @@ export default function ForceCalculator() {
       icon: "∠",
     },
     {
-      label: "Distance Phase-Phase (mm)",
+      label: "A (mm)",
       name: "distancePhasePhase",
       placeholder: "Distance between phases",
       icon: "⟷",
@@ -196,21 +223,6 @@ export default function ForceCalculator() {
             </div>
             <div className="inline-block bg-green-200 text-green-900 px-4 py-2 rounded-full text-sm font-semibold mt-4">
               ✓ Within acceptable limits
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/80 p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">Safety Factor</div>
-              <div className="text-lg font-bold text-gray-900">1.5x</div>
-            </div>
-            <div className="bg-white/80 p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">Stress Level</div>
-              <div className="text-lg font-bold text-gray-900">Normal</div>
-            </div>
-            <div className="bg-white/80 p-4 rounded-lg">
-              <div className="text-xs text-gray-600 mb-1">Compliance</div>
-              <div className="text-lg font-bold text-gray-900">IEC 61439</div>
             </div>
           </div>
         </div>

@@ -26,6 +26,7 @@ def send_aspExcel(A, width, thickness, perphase, angle, Icc, force, poles):
             write_log(f"Response of ASPExcel: {payload}")
             print(f"Response of ASPExcel: {response.text}")
             insert_calc_excel(payload['W'], payload['T'], payload['B'], payload['Angle'], payload['a'], payload['Icc'], payload['Force'], payload['NbrePhase'], response.text)
+            return int(response.text)
         else:
             print(f"Request ASPExcel thất bại với mã trạng thái: {response.status_code}")
     except requests.exceptions.RequestException as e:
@@ -36,16 +37,10 @@ def send_aspExcel(A, width, thickness, perphase, angle, Icc, force, poles):
 def get_aspExcel(W, T, B, Angle, a, Icc, Force, poles):
     if B == 5:
         B = 4
-    if get_calc_excel(W, T, B, Angle, a, Icc, Force, poles) is None:
-        send_aspExcel(a, W, T, B, Angle, Icc, Force, poles)
-    # F_max = get_calc_excel_F_max(W, T, B, Angle, a, Icc, poles)
-    # if F_max is not None:
-    #     F_max = int(F_max) + 1000
-    #     send_aspExcel_max(a, W, T, B, Angle, Icc, F_max, poles)
-    # else:
-    #     send_aspExcel_max(a, W, T, B, Angle, Icc, Force, poles)
-    # return get_calc_excel(W, T, B, Angle, a, Icc, poles)
-    return get_calc_excel(W, T, B, Angle, a, Icc, Force, poles)
+    L = get_calc_excel(W, T, B, Angle, a, Icc, Force, poles)
+    if L is None:
+        L = send_aspExcel(a, W, T, B, Angle, Icc, Force, poles)
+    return L
 
 def send_aspExcel_max(A, width, thickness, perphase, angle, Icc, initial_force, poles):
     force = int(initial_force)

@@ -6,7 +6,9 @@ import {
   queryBusbar,
   getImageBlobByPath,
   getFileLink,
+  calcExcel
 } from "@/api/api";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -104,6 +106,52 @@ export default function BusbarCalculator({
     const quantity = Number(quantities[id] || 0);
     const price = Number(prices[id] || 0);
     return (quantity * price).toFixed(2);
+  };
+
+  const handleSpaceBetweenPhasesSelect = async (value: string) => {
+    const numericValue = Number(value);
+    if (!Number.isNaN(numericValue)) {
+      if (selectedProduct && numericValue !== spaceBetweenPhases) {
+        console.log("Selected product details:", selectedProduct);
+        const addInfo = selectedProduct.additionalInfo?.[0];
+        const perPhaseNumber = parseInt(perPhase);
+        const pay = {
+          W: parseInt(width),
+          T: parseInt(thickness),
+          B: perPhaseNumber,
+          Angle: addInfo?.angle || 0,
+          a: numericValue,
+          Icc: icc,
+          Force: addInfo?.resmini,
+          NbrePhase: addInfo?.nbphase,
+        };
+        console.log("Recalculation payload:", pay);
+        const result = await calcExcel(pay);
+        console.log("Recalculation result:", result);
+        if (result?.ok && result.data) {
+          const L = Number(result.data.L ?? result.data.l ?? 0);
+          const B = Number(result.data.B ?? result.data.b ?? distanceBetweenFixingPoints);
+          const updatedProduct =
+            selectedProduct.additionalInfo?.length
+              ? {
+                ...selectedProduct,
+                additionalInfo: selectedProduct.additionalInfo.map(
+                  (info: any, idx: number) =>
+                    idx === 0
+                      ? { ...info, L, Amini: numericValue, Bmini: B }
+                      : info
+                ),
+              }
+            : selectedProduct;
+          setSelectedProduct(updatedProduct);
+          setProducts((prev) =>
+            prev.map((item) => (item.id === updatedProduct.id ? updatedProduct : item))
+          );
+          setDistanceBetweenFixingPoints(B);
+        }
+      }
+      setSpaceBetweenPhases(numericValue);
+    }
   };
 
   // NOTE: kept your original behavior (filter those that DO NOT have img1Article)
@@ -463,7 +511,7 @@ export default function BusbarCalculator({
             </label>
             <Select
               value={spaceBetweenPhases.toString()}
-              onValueChange={(value) => setSpaceBetweenPhases(Number(value))}
+              onValueChange={handleSpaceBetweenPhasesSelect}
             >
               <SelectTrigger>
                 <SelectValue />

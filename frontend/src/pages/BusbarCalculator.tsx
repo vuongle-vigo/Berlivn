@@ -6,7 +6,7 @@ import {
   queryBusbar,
   getImageBlobByPath,
   getFileLink,
-  calcExcel
+  calcExcel,
 } from "@/api/api";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -65,7 +65,6 @@ export default function BusbarCalculator({
     useState(0);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showOnlyWithImg1, setShowOnlyWithImg1] = useState(false);
   const itemsPerPage = 10;
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
@@ -112,7 +111,6 @@ export default function BusbarCalculator({
     const numericValue = Number(value);
     if (!Number.isNaN(numericValue)) {
       if (selectedProduct && numericValue !== spaceBetweenPhases) {
-        console.log("Selected product details:", selectedProduct);
         const addInfo = selectedProduct.additionalInfo?.[0];
         const perPhaseNumber = parseInt(perPhase);
         const pay = {
@@ -125,27 +123,30 @@ export default function BusbarCalculator({
           Force: addInfo?.resmini,
           NbrePhase: addInfo?.nbphase,
         };
-        console.log("Recalculation payload:", pay);
         const result = await calcExcel(pay);
-        console.log("Recalculation result:", result);
         if (result?.ok && result.data) {
           const L = Number(result.data.L ?? result.data.l ?? 0);
-          const B = Number(result.data.B ?? result.data.b ?? distanceBetweenFixingPoints);
+          const B = Number(
+            result.data.B ?? result.data.b ?? distanceBetweenFixingPoints
+          );
           const updatedProduct =
             selectedProduct.additionalInfo?.length
               ? {
-                ...selectedProduct,
-                additionalInfo: selectedProduct.additionalInfo.map(
-                  (info: any, idx: number) =>
-                    idx === 0
-                      ? { ...info, L, Amini: numericValue, Bmini: B }
-                      : info
-                ),
-              }
-            : selectedProduct;
+                  ...selectedProduct,
+                  additionalInfo: selectedProduct.additionalInfo.map(
+                    (info: any, idx: number) =>
+                      idx === 0
+                        ? { ...info, L, Amini: numericValue, Bmini: B }
+                        : info
+                  ),
+                }
+              : selectedProduct;
+
           setSelectedProduct(updatedProduct);
           setProducts((prev) =>
-            prev.map((item) => (item.id === updatedProduct.id ? updatedProduct : item))
+            prev.map((item) =>
+              item.id === updatedProduct.id ? updatedProduct : item
+            )
           );
           setDistanceBetweenFixingPoints(B);
         }
@@ -154,10 +155,7 @@ export default function BusbarCalculator({
     }
   };
 
-  // NOTE: kept your original behavior (filter those that DO NOT have img1Article)
-  const filteredProducts = showOnlyWithImg1
-    ? products.filter((product) => !product.additionalInfo?.[0]?.img1Article)
-    : products;
+  const filteredProducts = products;
 
   const indexOfLastProduct = currentPage * itemsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - itemsPerPage;
@@ -304,7 +302,6 @@ export default function BusbarCalculator({
 
     const additionalInfo = product.additionalInfo?.[0];
     if (!additionalInfo) {
-      console.warn("No additionalInfo found for product:", product);
       setImage1("/unknown.jpg");
       setImage2("/unknown.jpg");
       setImage3("/unknown.jpg");
@@ -316,6 +313,7 @@ export default function BusbarCalculator({
     const imageBase = `/products/${product.component_id}-${
       additionalInfo.resmini * 10
     }-${additionalInfo.nbphase}`;
+
     const remoteImg1Url = `https://eriflex-configurator.nvent.com/eriflex/design/photo_articles/${additionalInfo.img1Article}.jpg`;
     const remoteImg2Url = `https://eriflex-configurator.nvent.com/eriflex/design/photo_articles/${additionalInfo.img2Article}.jpg`;
 
@@ -363,457 +361,407 @@ export default function BusbarCalculator({
   };
 
   return (
-    // ✅ Responsive layout: form stays on the far left with adaptive width
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(260px,32vw)_1fr] xl:grid-cols-[clamp(300px,26vw,380px)_1fr]">
-      <div className="flex flex-col gap-4 bg-white p-6 rounded-xl shadow-lg border border-gray-200 h-fit">
-        <h2 className="text-xl font-bold text-red-600 mb-2">Busbar Support</h2>
+    // ✅ full width (no max-w limit)
+    <div className="w-full px-3 sm:px-4 lg:px-6 py-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-3">
+        {/* LEFT: compact form */}
+        <aside className="bg-white border rounded-md p-3">
+          <h2 className="text-lg font-bold text-red-600 mb-2">Busbar Support</h2>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Per Phase
-            </label>
-            <Select value={perPhase} onValueChange={setPerPhase}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Per Phase" />
-              </SelectTrigger>
-              <SelectContent>
-                {["1 Busbar", "2 Busbar", "3 Busbar", "4 Busbar", "5 Busbar"].map(
-                  (val) => (
-                    <SelectItem key={val} value={val}>
-                      {val}
-                    </SelectItem>
-                  )
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3 text-sm">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Thickness
+              <label className="block font-semibold text-gray-700 mb-1">
+                Per Phase
               </label>
-              <Select value={thickness} onValueChange={handleThicknessChange}>
-                <SelectTrigger>
-                  <SelectValue />
+              <Select value={perPhase} onValueChange={setPerPhase}>
+                <SelectTrigger className="w-full h-9">
+                  <SelectValue placeholder="Select Per Phase" />
                 </SelectTrigger>
                 <SelectContent>
-                  {["2", "4", "5", "10"].map((val) => (
-                    <SelectItem key={val} value={val}>
-                      {val}
-                    </SelectItem>
-                  ))}
+                  {["1 Busbar", "2 Busbar", "3 Busbar", "4 Busbar", "5 Busbar"].map(
+                    (val) => (
+                      <SelectItem key={val} value={val}>
+                        {val}
+                      </SelectItem>
+                    )
+                  )}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Width
-              </label>
-              <Select
-                value={width}
-                onValueChange={setWidth}
-                disabled={widthOptions.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {widthOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Poles
-            </label>
-            <div className="flex gap-2">
-              {["Bi", "Three", "Four"].map((pole) => (
-                <label
-                  key={pole}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <input
-                    type="radio"
-                    name="poles"
-                    value={pole}
-                    checked={poles === pole}
-                    onChange={(e) => setPoles(e.target.value)}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <span className="text-sm">{pole}</span>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Thickness
                 </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Shape
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {["C", "P", "I", "E"].map((s) => (
-                <label
-                  key={s}
-                  className="flex flex-col items-center cursor-pointer border rounded p-2 hover:bg-gray-50"
-                >
-                  <div className="text-2xl font-bold text-gray-400 mb-1">
-                    {s}
-                  </div>
-                  <input
-                    type="radio"
-                    name="shape"
-                    value={s}
-                    checked={shape === s}
-                    onChange={(e) => setShape(e.target.value)}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Icc3 (kA effective)
-            </label>
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => handleIccChange(e.target.value)}
-              onBlur={handleBlur}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Ipk (kA peak)
-            </label>
-            <input
-              type="number"
-              value={ipk.toFixed(2)}
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Space between phases (A)
-            </label>
-            <Select
-              value={spaceBetweenPhases.toString()}
-              onValueChange={handleSpaceBetweenPhasesSelect}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedProduct?.additionalInfo?.[0]?.a_list
-                  ?.split(",")
-                  .map((value: string) => (
-                    <SelectItem key={value.trim()} value={value.trim()}>
-                      {value.trim()}
-                    </SelectItem>
-                  )) || <SelectItem value="0">No options</SelectItem>}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Distance between fixing points (B)
-            </label>
-            <input
-              type="number"
-              value={distanceBetweenFixingPoints}
-              onChange={(e) =>
-                setDistanceBetweenFixingPoints(Number(e.target.value))
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {!isAdmin && (
-            <Alert>
-              <AlertDescription className="text-sm">
-                Số lượt tra cứu còn lại hôm nay:{" "}
-                <strong>{remainingSearches}</strong>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <button
-            onClick={fetchProducts}
-            disabled={loading || (!isAdmin && !canSearch)}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Loading...
-              </>
-            ) : (
-              "Search Products"
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-6 min-w-0">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-96 bg-white rounded-xl shadow-lg">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-blue-500 mt-4">Loading product information...</p>
-          </div>
-        ) : (
-          <>
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-              <h2 className="text-2xl font-bold text-blue-600 mb-2">
-                N° {selectedProduct?.component_id || "No Product Selected"}
-              </h2>
-              <p className="text-lg text-gray-700 mb-4">
-                Designation:{" "}
-                {selectedProduct?.additionalInfo?.[0]?.info ||
-                  "No Product Selected"}
-              </p>
-              <hr className="mb-4" />
-              <p className="text-sm text-gray-600 mb-4">
-                Data and Calculations in accordance with IEC 61 439
-              </p>
-
-              {/* ✅ Responsive images */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-                <img
-                  src={image1}
-                  alt="Image 1"
-                  className="w-full h-48 object-contain border rounded"
-                />
-                <img
-                  src={image2}
-                  alt="Image 2"
-                  className="w-full h-48 object-contain border rounded"
-                />
-                <img
-                  src={image3}
-                  alt="Image 3"
-                  className="w-full h-48 object-contain border rounded"
-                />
+                <Select value={thickness} onValueChange={handleThicknessChange}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["2", "4", "5", "10"].map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <BusbarCanvas
-                leftValue={
-                  selectedProduct?.additionalInfo?.[0]?.L
-                    ? Math.ceil(selectedProduct.additionalInfo[0].L / 4).toString()
-                    : "N/A"
-                }
-                centerValue={
-                  selectedProduct?.additionalInfo?.[0]?.L?.toString() || "N/A"
-                }
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Width
+                </label>
+                <Select
+                  value={width}
+                  onValueChange={setWidth}
+                  disabled={widthOptions.length === 0}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {widthOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">
+                Poles
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {["Bi", "Three", "Four"].map((pole) => (
+                  <label key={pole} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="poles"
+                      value={pole}
+                      checked={poles === pole}
+                      onChange={(e) => setPoles(e.target.value)}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm">{pole}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">
+                Shape
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {["C", "P", "I", "E"].map((s) => (
+                  <label
+                    key={s}
+                    className="flex flex-col items-center cursor-pointer border rounded p-2 hover:bg-gray-50"
+                  >
+                    <div className="text-lg font-bold text-gray-400 leading-none">
+                      {s}
+                    </div>
+                    <input
+                      type="radio"
+                      name="shape"
+                      value={s}
+                      checked={shape === s}
+                      onChange={(e) => setShape(e.target.value)}
+                      className="w-4 h-4 text-blue-600 mt-1"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">
+                Icc3 (kA effective)
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => handleIccChange(e.target.value)}
+                onBlur={handleBlur}
+                className="w-full h-9 px-3 text-sm border border-gray-300 rounded-md"
               />
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-              {filteredProducts.length > 0 ? (
-                <>
-                  <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-                    <button
-                      onClick={() => setShowOnlyWithImg1(!showOnlyWithImg1)}
-                      className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 w-full sm:w-auto"
-                    >
-                      {showOnlyWithImg1
-                        ? "Show All Products"
-                        : "Show BERLIVN Products"}
-                    </button>
-                  </div>
-
-                  {/* ✅ Scroll container with viewport-based max height */}
-                  <div className="overflow-auto max-h-[calc(100vh-260px)] rounded-lg border">
-                    <Table className="min-w-[900px] table-fixed">
-                      {/* ✅ Sticky header */}
-                      <TableHeader className="sticky top-0 bg-white z-10">
-                        <TableRow>
-                          <TableHead className="w-32">Component ID</TableHead>
-
-                          {/* ✅ Fixed width + will truncate in cells */}
-                          <TableHead className="w-[320px]">
-                            Product Name
-                          </TableHead>
-
-                          <TableHead className="w-24 text-center">
-                            A (mm)
-                          </TableHead>
-                          <TableHead className="w-24 text-center">
-                            L (mm)
-                          </TableHead>
-
-                          {/* ✅ Hide some columns on smaller screens */}
-                          <TableHead className="hidden xl:table-cell w-24 text-center">
-                            L&apos; (mm)
-                          </TableHead>
-                          <TableHead className="hidden xl:table-cell w-24 text-center">
-                            Angle
-                          </TableHead>
-
-                          <TableHead className="w-[140px] text-center">
-                            Quantity
-                          </TableHead>
-                          <TableHead className="w-[140px] text-center">
-                            Price
-                          </TableHead>
-                          <TableHead className="w-28 text-center">
-                            Total
-                          </TableHead>
-
-                          <TableHead className="hidden lg:table-cell w-16 text-center">
-                            Doc
-                          </TableHead>
-                          <TableHead className="hidden lg:table-cell w-16 text-center">
-                            2D
-                          </TableHead>
-                          <TableHead className="hidden lg:table-cell w-16 text-center">
-                            3D
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-
-                      <TableBody>
-                        {currentProducts.map((product: any) => (
-                          <TableRow
-                            key={product.id}
-                            className={`cursor-pointer ${
-                              selectedProduct?.id === product.id
-                                ? "bg-yellow-100"
-                                : ""
-                            }`}
-                            onClick={() => handleRowClick(product)}
-                          >
-                            <TableCell className="w-32">
-                              {product.component_id}
-                            </TableCell>
-
-                            <TableCell className="w-[320px]">
-                              <div
-                                className="truncate"
-                                title={product.additionalInfo?.[0]?.info || ""}
-                              >
-                                {product.additionalInfo?.[0]?.info || "N/A"}
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="w-24 text-center">
-                              {product.additionalInfo?.[0]?.Amini || "N/A"}
-                            </TableCell>
-                            <TableCell className="w-24 text-center">
-                              {product.additionalInfo?.[0]?.L || "N/A"}
-                            </TableCell>
-
-                            <TableCell className="hidden xl:table-cell w-24 text-center">
-                              {product.additionalInfo?.[0]?.L
-                                ? Math.ceil(product.additionalInfo[0].L / 4)
-                                : "N/A"}
-                            </TableCell>
-
-                            <TableCell className="hidden xl:table-cell w-24 text-center">
-                              {product.additionalInfo?.[0]?.angle || "N/A"}
-                            </TableCell>
-
-                            <TableCell className="w-[140px]">
-                              <input
-                                type="number"
-                                value={quantities[product.id] || ""}
-                                onChange={(e) =>
-                                  handleQuantityChange(
-                                    product.id,
-                                    e.target.value
-                                  )
-                                }
-                                className="w-full px-3 py-2 border rounded text-sm text-center"
-                              />
-                            </TableCell>
-
-                            <TableCell className="w-[140px]">
-                              <input
-                                type="number"
-                                value={prices[product.id] || ""}
-                                onChange={(e) =>
-                                  handlePriceChange(product.id, e.target.value)
-                                }
-                                className="w-full px-3 py-2 border rounded text-sm text-right"
-                              />
-                            </TableCell>
-
-                            <TableCell className="w-28 text-center">
-                              {calculateTotal(product.id)}
-                            </TableCell>
-
-                            <TableCell className="hidden lg:table-cell w-16 text-center">
-                              <a
-                                href={generateFileLink(product, "doc")}
-                                className="text-blue-600 hover:text-blue-800 inline-flex items-center justify-center w-full"
-                                aria-label="Download DOC"
-                              >
-                                <span aria-hidden>⬇</span>
-                              </a>
-                            </TableCell>
-
-                            <TableCell className="hidden lg:table-cell w-16 text-center">
-                              <a
-                                href={generateFileLink(product, "2d")}
-                                className="text-blue-600 hover:text-blue-800 inline-flex items-center justify-center w-full"
-                                aria-label="Download 2D"
-                              >
-                                <span aria-hidden>⬇</span>
-                              </a>
-                            </TableCell>
-
-                            <TableCell className="hidden lg:table-cell w-16 text-center">
-                              <a
-                                href={generateFileLink(product, "3d")}
-                                className="text-blue-600 hover:text-blue-800 inline-flex items-center justify-center w-full"
-                                aria-label="Download 3D"
-                              >
-                                <span aria-hidden>⬇</span>
-                              </a>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div className="flex flex-wrap justify-center items-center mt-4 gap-2">
-                    {Array.from({ length: totalPages }, (_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handlePageChange(index + 1)}
-                        className={`px-3 py-1 rounded ${
-                          currentPage === index + 1
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
-                      >
-                        {index + 1}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <p className="text-center text-lg text-gray-500">
-                  No products found.
-                </p>
-              )}
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">
+                Ipk (kA peak)
+              </label>
+              <input
+                type="text"
+                value={ipk.toFixed(2)}
+                readOnly
+                className="w-full h-9 px-3 text-sm border border-gray-300 rounded-md bg-gray-100"
+              />
             </div>
-          </>
-        )}
+
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">
+                Space between phases (mm)
+              </label>
+              <Select
+                value={spaceBetweenPhases.toString()}
+                onValueChange={handleSpaceBetweenPhasesSelect}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedProduct?.additionalInfo?.[0]?.a_list
+                    ?.split(",")
+                    .map((value: string) => (
+                      <SelectItem key={value.trim()} value={value.trim()}>
+                        {value.trim()}
+                      </SelectItem>
+                    )) || <SelectItem value="0">No options</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block font-semibold text-gray-700 mb-1">
+                Distance between fixing points (mm)
+              </label>
+              <input
+                type="number"
+                value={distanceBetweenFixingPoints}
+                onChange={(e) =>
+                  setDistanceBetweenFixingPoints(Number(e.target.value))
+                }
+                className="w-full h-9 px-3 text-sm border border-gray-300 rounded-md"
+              />
+            </div>
+
+            {!isAdmin && (
+              <Alert>
+                <AlertDescription className="text-sm">
+                  Số lượt tra cứu còn lại hôm nay:{" "}
+                  <strong>{remainingSearches}</strong>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <button
+              onClick={fetchProducts}
+              disabled={loading || (!isAdmin && !canSearch)}
+              className="w-full bg-blue-600 text-white h-9 rounded-md font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
+            >
+              {loading ? "Loading..." : "Search Products"}
+            </button>
+          </div>
+        </aside>
+
+        {/* RIGHT: one compact panel */}
+        <main className="bg-white border rounded-md p-3 min-w-0">
+          {loading ? (
+            <div className="flex items-center justify-center h-64 text-sm text-gray-600">
+              Loading product information...
+            </div>
+          ) : (
+            <>
+              <div className="text-center text-lg font-bold text-blue-600 mb-2">
+                {selectedProduct?.additionalInfo?.[0]?.info || "Bar Support"}
+              </div>
+
+              {/* compact images (no border, smaller) */}
+              <div className="mb-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-gray-50 rounded flex items-center justify-center">
+                  <img
+                    src={image1}
+                    alt="Image 1"
+                    className="w-full h-auto max-h-[260px] object-contain"
+                  />
+                </div>
+
+                <div className="bg-gray-50 rounded flex items-center justify-center">
+                  <img
+                    src={image2}
+                    alt="Image 2"
+                    className="w-full h-auto max-h-[260px] object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+              <div className="mb-3">
+                <BusbarCanvas
+                  leftValue={
+                    selectedProduct?.additionalInfo?.[0]?.L
+                      ? Math.ceil(selectedProduct.additionalInfo[0].L / 4).toString()
+                      : "N/A"
+                  }
+                  centerValue={
+                    selectedProduct?.additionalInfo?.[0]?.L?.toString() || "N/A"
+                  }
+                />
+              </div>
+
+              {/* TABLE: compact + NO horizontal scroll */}
+              <div className="overflow-x-hidden overflow-y-auto max-h-[360px] rounded-md border">
+                <Table className="w-full table-auto text-xs">
+                  <TableHeader className="sticky top-0 bg-white z-10">
+                    <TableRow>
+                      <TableHead className="py-2 px-2 whitespace-nowrap">
+                        Component ID
+                      </TableHead>
+                      <TableHead className="py-2 px-2">Product Name</TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                        A
+                      </TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                        L
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
+                        L&apos;
+                      </TableHead>
+                      <TableHead className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
+                        Angle
+                      </TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                        Qty
+                      </TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                        Price
+                      </TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                        Total
+                      </TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap w-14">
+                        Doc
+                      </TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap w-14">
+                        2D
+                      </TableHead>
+                      <TableHead className="py-2 px-2 text-center whitespace-nowrap w-14">
+                        3D
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {currentProducts.map((product: any) => (
+                      <TableRow
+                        key={product.id}
+                        className={`cursor-pointer ${
+                          selectedProduct?.id === product.id ? "bg-yellow-100" : ""
+                        }`}
+                        onClick={() => handleRowClick(product)}
+                      >
+                        <TableCell className="py-2 px-2 whitespace-nowrap">
+                          {product.component_id}
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2">
+                          <div
+                            className="truncate max-w-[260px]"
+                            title={product.additionalInfo?.[0]?.info || ""}
+                          >
+                            {product.additionalInfo?.[0]?.info || "N/A"}
+                          </div>
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2 text-center whitespace-nowrap">
+                          {product.additionalInfo?.[0]?.Amini || "N/A"}
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2 text-center whitespace-nowrap">
+                          {product.additionalInfo?.[0]?.L || "N/A"}
+                        </TableCell>
+
+                        <TableCell className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
+                          {product.additionalInfo?.[0]?.L
+                            ? Math.ceil(product.additionalInfo[0].L / 4)
+                            : "N/A"}
+                        </TableCell>
+
+                        <TableCell className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
+                          {product.additionalInfo?.[0]?.angle || "N/A"}
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2">
+                          <input
+                            type="number"
+                            value={quantities[product.id] || ""}
+                            onChange={(e) =>
+                              handleQuantityChange(product.id, e.target.value)
+                            }
+                            className="w-full h-7 px-2 text-xs border rounded"
+                          />
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2">
+                          <input
+                            type="number"
+                            value={prices[product.id] || ""}
+                            onChange={(e) =>
+                              handlePriceChange(product.id, e.target.value)
+                            }
+                            className="w-full h-7 px-2 text-xs border rounded text-right"
+                          />
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2 text-center whitespace-nowrap">
+                          {calculateTotal(product.id)}
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2 text-center whitespace-nowrap w-14">
+                          <a
+                            href={generateFileLink(product, "doc")}
+                            className="text-blue-600 hover:underline"
+                          >
+                            See
+                          </a>
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2 text-center whitespace-nowrap w-14">
+                          <a
+                            href={generateFileLink(product, "2d")}
+                            className="text-blue-600 hover:underline"
+                          >
+                            See
+                          </a>
+                        </TableCell>
+
+                        <TableCell className="py-2 px-2 text-center whitespace-nowrap w-14">
+                          <a
+                            href={generateFileLink(product, "3d")}
+                            className="text-blue-600 hover:underline"
+                          >
+                            See
+                          </a>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex flex-wrap justify-center items-center mt-3 gap-2">
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handlePageChange(index + 1)}
+                    className={`px-3 py-1 rounded text-sm ${
+                      currentPage === index + 1
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </main>
       </div>
     </div>
   );

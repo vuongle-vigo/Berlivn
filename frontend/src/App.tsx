@@ -28,6 +28,7 @@ import Products from "./pages/Products";
 import AdminDashboard from "./pages/AdminDashboard";
 import Analytics from "./pages/Analytics";
 import UserProfile from "./pages/UserProfile";
+import logo from "./assets/logo.png";
 
 function App() {
   const {
@@ -159,11 +160,13 @@ function App() {
           <div className="flex items-center justify-between min-h-14 py-2">
             {/* LEFT */}
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
+              <img
+                src={logo}
+                alt="Berlivn Busbar logo"
+                className="w-10 h-10 object-contain"
+              />
               <h1 className="text-lg font-bold text-gray-900">
-                Electrical Engineering Suite
+                Berlivn Busbar
               </h1>
             </div>
 

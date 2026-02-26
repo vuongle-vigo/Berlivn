@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getDailySearchLimit,
@@ -51,24 +51,58 @@ export default function BusbarCalculator({
   const [thickness, setThickness] = useState("2");
   const [widthOptions, setWidthOptions] = useState(["12"]);
   const [width, setWidth] = useState("12");
-  const [poles, setPoles] = useState("Four");
-  const [shape, setShape] = useState("C");
+  const [poles, setPoles] = useState<"Bi" | "Three" | "Four">("Four");
+  const [shape, setShape] = useState<"C" | "P" | "I" | "E">("C");
+
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
   const [image1, setImage1] = useState("/unknown.jpg");
   const [image2, setImage2] = useState("/unknown.jpg");
   const [image3, setImage3] = useState("/unknown.jpg");
+
+  const image1UrlRef = useRef<string | null>(null);
+  const image2UrlRef = useRef<string | null>(null);
+  const image3UrlRef = useRef<string | null>(null);
+
   const [icc, setIcc] = useState(12);
   const [ipk, setIpk] = useState(0);
-  const [spaceBetweenPhases, setSpaceBetweenPhases] = useState(0);
+
+  const [spaceBetweenPhases, setSpaceBetweenPhases] = useState(75);
   const [distanceBetweenFixingPoints, setDistanceBetweenFixingPoints] =
-    useState(0);
+    useState(525);
+
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [inputValue, setInputValue] = useState("12");
+
+  const polesMapping: Record<"Bi" | "Three" | "Four", number> = {
+    Bi: 2,
+    Three: 3,
+    Four: 4,
+  };
+
+  const getBusbarCount = (val: string) => {
+    const n = Number(val.split(" ")[0]);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const revokeIfBlobUrl = (url: string | null) => {
+    if (url && url.startsWith("blob:")) URL.revokeObjectURL(url);
+  };
+
+  useEffect(() => {
+    return () => {
+      revokeIfBlobUrl(image1UrlRef.current);
+      revokeIfBlobUrl(image2UrlRef.current);
+      revokeIfBlobUrl(image3UrlRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const fetchUserLimit = async () => {
@@ -108,50 +142,50 @@ export default function BusbarCalculator({
   };
 
   const handleSpaceBetweenPhasesSelect = async (value: string) => {
-    const numericValue = Number(value);
-    if (!Number.isNaN(numericValue)) {
-      if (selectedProduct && numericValue !== spaceBetweenPhases) {
-        const addInfo = selectedProduct.additionalInfo?.[0];
-        const perPhaseNumber = parseInt(perPhase);
-        const pay = {
-          W: parseInt(width),
-          T: parseInt(thickness),
-          B: perPhaseNumber,
-          Angle: addInfo?.angle || 0,
-          a: numericValue,
-          Icc: icc,
-          Force: addInfo?.resmini,
-          NbrePhase: addInfo?.nbphase,
-        };
-        const result = await calcExcel(pay);
-        if (result?.ok && result.data) {
-          const L = Number(result.data.L ?? result.data.l ?? 0);
-          const B = Number(
-            result.data.B ?? result.data.b ?? distanceBetweenFixingPoints
-          );
-          const updatedProduct =
-            selectedProduct.additionalInfo?.length
-              ? {
-                  ...selectedProduct,
-                  additionalInfo: selectedProduct.additionalInfo.map(
-                    (info: any, idx: number) =>
-                      idx === 0
-                        ? { ...info, L, Amini: numericValue, Bmini: B }
-                        : info
-                  ),
-                }
-              : selectedProduct;
+    const a = Number(value);
+    if (Number.isNaN(a)) return;
 
-          setSelectedProduct(updatedProduct);
-          setProducts((prev) =>
-            prev.map((item) =>
-              item.id === updatedProduct.id ? updatedProduct : item
-            )
-          );
-          setDistanceBetweenFixingPoints(B);
-        }
-      }
-      setSpaceBetweenPhases(numericValue);
+    setSpaceBetweenPhases(a);
+
+    if (!selectedProduct) return;
+
+    const addInfo = selectedProduct.additionalInfo?.[0];
+    if (!addInfo) return;
+
+    const busbarCount = getBusbarCount(perPhase);
+    const nbrePhase = polesMapping[poles] ?? 0;
+
+    const pay = {
+      W: Number(width) || 0,
+      T: Number(thickness) || 0,
+      B: busbarCount,
+      Angle: Number(addInfo?.angle) || 0,
+      a,
+      Icc: Number(icc) || 0,
+      Force: Math.round((addInfo?.resmini ?? 0) * 10), // ✅ match old project
+      NbrePhase: nbrePhase, // ✅ match old project (from poles)
+    };
+
+    const result = await calcExcel(pay);
+    if (result?.ok && result.data) {
+      const L = Number(result.data.L ?? result.data.l ?? 0);
+      const Bfix = Number(
+        result.data.B ?? result.data.b ?? distanceBetweenFixingPoints
+      );
+
+      const updatedProduct = {
+        ...selectedProduct,
+        additionalInfo: (selectedProduct.additionalInfo || []).map(
+          (info: any, idx: number) =>
+            idx === 0 ? { ...info, L, Amini: a, Bmini: Bfix } : info
+        ),
+      };
+
+      setSelectedProduct(updatedProduct);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
+      );
+      setDistanceBetweenFixingPoints(Bfix);
     }
   };
 
@@ -170,11 +204,13 @@ export default function BusbarCalculator({
   };
 
   const handleIccChange = (value: string) => {
-    const cleanedValue =
-      value.replace(/^0+/, "").replace(/[^\d.]/g, "") || "0";
-    setInputValue(cleanedValue);
-    const numericValue = Math.min(Math.max(Number(cleanedValue), 12), 200);
-    setIcc(numericValue || 0);
+    // allow only 1 decimal dot
+    let cleaned = value.replace(/^0+/, "").replace(/[^\d.]/g, "") || "0";
+    cleaned = cleaned.replace(/(\..*)\./g, "$1");
+    setInputValue(cleaned);
+
+    const numericValue = Math.min(Math.max(Number(cleaned), 12), 200);
+    setIcc(Number.isFinite(numericValue) ? numericValue : 0);
   };
 
   const handleBlur = () => {
@@ -234,12 +270,15 @@ export default function BusbarCalculator({
 
   const fetchProducts = async () => {
     if (!isAdmin && remainingSearches <= 0) {
-      alert(`Bạn đã hết lượt tra cứu hôm nay. Còn lại: ${remainingSearches} lượt`);
+      alert(
+        `Bạn đã hết lượt tra cứu hôm nay. Còn lại: ${remainingSearches} lượt`
+      );
       return;
     }
 
     setLoading(true);
     try {
+      // ✅ match old ipk mapping
       let calculatedIpk = 0;
       if (icc <= 5) calculatedIpk = icc * 1.5;
       else if (icc <= 10) calculatedIpk = icc * 1.7;
@@ -248,50 +287,46 @@ export default function BusbarCalculator({
       else calculatedIpk = icc * 2.2;
       setIpk(calculatedIpk);
 
-      const calculatedA = 75;
-      const calculatedB = 525;
-      setSpaceBetweenPhases(calculatedA);
-      setDistanceBetweenFixingPoints(calculatedB);
+      // ✅ default A/B like old project
+      setSpaceBetweenPhases(75);
+      setDistanceBetweenFixingPoints(525);
 
-      try {
-        const response = await queryBusbar({
-          perPhase,
-          thickness,
-          width,
-          poles,
-          shape,
-          icc,
-        });
+      const response = await queryBusbar({
+        perPhase,
+        thickness,
+        width,
+        poles,
+        shape,
+        icc,
+      });
 
-        if (response.ok && response.data) {
-          setProducts(response.data.products || []);
-          if (response.data.products && response.data.products.length > 0) {
-            handleRowClick(response.data.products[0]);
-          }
+      if (response.ok && response.data) {
+        const list = response.data.products || [];
+        setProducts(list);
+        setCurrentPage(1); // ✅ avoid empty page after new search
 
-          if (!isAdmin && user?.id) {
-            const decRes = await decrementDailySearchLimit(user.id);
-            if (decRes.ok && decRes.data) {
-              const nextRemaining = Number(
-                decRes.data.daily_search_remaining ?? remainingSearches
-              );
-              setRemainingSearches(nextRemaining);
-              setCanSearch(nextRemaining > 0);
-              if (onSearchComplete) onSearchComplete();
-            } else {
-              alert("Không thể cập nhật lượt tra cứu. Vui lòng thử lại sau.");
-            }
-          }
-        } else {
-          console.error("Failed to query products", response.status);
+        if (list.length > 0) {
+          await handleRowClick(list[0]);
         }
-      } catch (error) {
-        console.error("Error querying busbar products:", error);
-        setLoading(false);
-        return;
+
+        if (!isAdmin && user?.id) {
+          const decRes = await decrementDailySearchLimit(user.id);
+          if (decRes.ok && decRes.data) {
+            const nextRemaining = Number(
+              decRes.data.daily_search_remaining ?? remainingSearches
+            );
+            setRemainingSearches(nextRemaining);
+            setCanSearch(nextRemaining > 0);
+            if (onSearchComplete) onSearchComplete();
+          } else {
+            alert("Không thể cập nhật lượt tra cứu. Vui lòng thử lại sau.");
+          }
+        }
+      } else {
+        console.error("Failed to query products", response.status);
       }
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error querying busbar products:", error);
     } finally {
       setLoading(false);
     }
@@ -302,11 +337,19 @@ export default function BusbarCalculator({
 
     const additionalInfo = product.additionalInfo?.[0];
     if (!additionalInfo) {
+      // cleanup blobs
+      revokeIfBlobUrl(image1UrlRef.current);
+      revokeIfBlobUrl(image2UrlRef.current);
+      revokeIfBlobUrl(image3UrlRef.current);
+      image1UrlRef.current = null;
+      image2UrlRef.current = null;
+      image3UrlRef.current = null;
+
       setImage1("/unknown.jpg");
       setImage2("/unknown.jpg");
       setImage3("/unknown.jpg");
-      setSpaceBetweenPhases(0);
-      setDistanceBetweenFixingPoints(0);
+      setSpaceBetweenPhases(75);
+      setDistanceBetweenFixingPoints(525);
       return;
     }
 
@@ -321,7 +364,8 @@ export default function BusbarCalculator({
       basePath: string,
       index: number,
       remoteFallbackUrl: string,
-      setImage: (url: string) => void
+      setImage: (url: string) => void,
+      ref: React.MutableRefObject<string | null>
     ) => {
       const extensions = ["jpg", "png"];
       for (const ext of extensions) {
@@ -329,21 +373,30 @@ export default function BusbarCalculator({
         const { ok, blob } = await getImageBlobByPath(relativePath);
         if (ok && blob) {
           const blobUrl = URL.createObjectURL(blob);
+
+          // revoke old
+          revokeIfBlobUrl(ref.current);
+          ref.current = blobUrl;
+
           setImage(blobUrl);
           return;
         }
       }
+
+      // revoke old blob if switching to remote/static
+      revokeIfBlobUrl(ref.current);
+      ref.current = null;
+
       setImage(remoteFallbackUrl);
     };
 
-    tryImageWithExtensions(imageBase, 1, remoteImg1Url, setImage1);
-    tryImageWithExtensions(imageBase, 2, remoteImg2Url, setImage2);
-    tryImageWithExtensions(imageBase, 3, "/unknown.jpg", setImage3);
+    tryImageWithExtensions(imageBase, 1, remoteImg1Url, setImage1, image1UrlRef);
+    tryImageWithExtensions(imageBase, 2, remoteImg2Url, setImage2, image2UrlRef);
+    tryImageWithExtensions(imageBase, 3, "/unknown.jpg", setImage3, image3UrlRef);
 
-    const Amini = additionalInfo.Amini || 0;
-    const Bmini = additionalInfo.Bmini || 0;
-    setSpaceBetweenPhases(Amini);
-    setDistanceBetweenFixingPoints(Bmini);
+    // ✅ fallback to defaults (avoid 0)
+    setSpaceBetweenPhases(additionalInfo.Amini ?? 75);
+    setDistanceBetweenFixingPoints(additionalInfo.Bmini ?? 525);
   };
 
   const generateFileLink = (product: any, docType: string) => {
@@ -355,8 +408,9 @@ export default function BusbarCalculator({
     const nbphase = product.additionalInfo[0].nbphase;
     const suffix = docType === "doc" ? "doc" : docType === "2d" ? "2d" : "3d";
     const extension = docType === "3d" ? "stp" : "pdf";
-    const filePath = `/documents/${componentId}-${resmini}-${nbphase}-${suffix}.${extension}`;
 
+    // ✅ unify with old download format: include nbphase
+    const filePath = `/documents/${componentId}-${resmini}-${nbphase}-${suffix}.${extension}`;
     return getFileLink(filePath);
   };
 
@@ -436,14 +490,17 @@ export default function BusbarCalculator({
                 Poles
               </label>
               <div className="flex gap-2 flex-wrap">
-                {["Bi", "Three", "Four"].map((pole) => (
-                  <label key={pole} className="flex items-center gap-2 cursor-pointer">
+                {(["Bi", "Three", "Four"] as const).map((pole) => (
+                  <label
+                    key={pole}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
                     <input
                       type="radio"
                       name="poles"
                       value={pole}
                       checked={poles === pole}
-                      onChange={(e) => setPoles(e.target.value)}
+                      onChange={(e) => setPoles(e.target.value as any)}
                       className="w-4 h-4 text-blue-600"
                     />
                     <span className="text-sm">{pole}</span>
@@ -457,7 +514,7 @@ export default function BusbarCalculator({
                 Shape
               </label>
               <div className="grid grid-cols-4 gap-2">
-                {["C", "P", "I", "E"].map((s) => (
+                {(["C", "P", "I", "E"] as const).map((s) => (
                   <label
                     key={s}
                     className="flex flex-col items-center cursor-pointer border rounded p-2 hover:bg-gray-50"
@@ -470,7 +527,7 @@ export default function BusbarCalculator({
                       name="shape"
                       value={s}
                       checked={shape === s}
-                      onChange={(e) => setShape(e.target.value)}
+                      onChange={(e) => setShape(e.target.value as any)}
                       className="w-4 h-4 text-blue-600 mt-1"
                     />
                   </label>
@@ -573,24 +630,25 @@ export default function BusbarCalculator({
 
               {/* compact images (no border, smaller) */}
               <div className="mb-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded flex items-center justify-center">
-                  <img
-                    src={image1}
-                    alt="Image 1"
-                    className="w-full h-auto max-h-[260px] object-contain"
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-gray-50 rounded flex items-center justify-center">
+                    <img
+                      src={image1}
+                      alt="Image 1"
+                      className="w-full h-auto max-h-[260px] object-contain"
+                    />
+                  </div>
 
-                <div className="bg-gray-50 rounded flex items-center justify-center">
-                  <img
-                    src={image2}
-                    alt="Image 2"
-                    className="w-full h-auto max-h-[260px] object-contain"
-                  />
+                  <div className="bg-gray-50 rounded flex items-center justify-center">
+                    <img
+                      src={image2}
+                      alt="Image 2"
+                      className="w-full h-auto max-h-[260px] object-contain"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+
               <div className="mb-3">
                 <BusbarCanvas
                   leftValue={
@@ -669,11 +727,11 @@ export default function BusbarCalculator({
                         </TableCell>
 
                         <TableCell className="py-2 px-2 text-center whitespace-nowrap">
-                          {product.additionalInfo?.[0]?.Amini || "N/A"}
+                          {product.additionalInfo?.[0]?.Amini ?? "N/A"}
                         </TableCell>
 
                         <TableCell className="py-2 px-2 text-center whitespace-nowrap">
-                          {product.additionalInfo?.[0]?.L || "N/A"}
+                          {product.additionalInfo?.[0]?.L ?? "N/A"}
                         </TableCell>
 
                         <TableCell className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
@@ -683,7 +741,7 @@ export default function BusbarCalculator({
                         </TableCell>
 
                         <TableCell className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
-                          {product.additionalInfo?.[0]?.angle || "N/A"}
+                          {product.additionalInfo?.[0]?.angle ?? "N/A"}
                         </TableCell>
 
                         <TableCell className="py-2 px-2">

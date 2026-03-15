@@ -35,6 +35,7 @@ class UserResponse(BaseModel):
 	role: str
 	registration_number: Optional[str] = None
 	created_at: Optional[str] = None
+	is_active: Optional[int] = 1
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(req: RegisterRequest):

@@ -23,7 +23,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import UserDetailDialog from '@/components/UserDetailDialog';
 import { getAllUsers, updateUserAdmin, deleteUserProfile } from '@/api/api';
-import { Eye, Search, ChevronLeft, ChevronRight, Filter, UserPlus, RotateCcw } from 'lucide-react';
+import { Eye, Search, ChevronLeft, ChevronRight, Filter, UserPlus, RotateCcw, Loader2 } from 'lucide-react';
 
 interface User {
   id: string;
@@ -490,78 +490,105 @@ export default function AdminDashboard({ isCurrentAdmin }: { isCurrentAdmin?: bo
           setError('');
         }
       }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Edit User</DialogTitle>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Chỉnh sửa người dùng
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleUpdateUser} className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Email</Label>
-              <Input
-                value={editingUser?.email || ''}
-                disabled
-                className="bg-gray-50"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Full Name</Label>
-              <Input
-                value={editingUser?.full_name || `${editingUser?.first_name || ''} ${editingUser?.last_name || ''}`.trim() || ''}
-                disabled
-                className="bg-gray-50"
-              />
+          <form onSubmit={handleUpdateUser} className="space-y-5">
+            {/* User avatar & name */}
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-lg font-bold text-white">
+                  {editingUser?.first_name?.charAt(0) || '?'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-800 truncate">
+                  {editingUser?.full_name || `${editingUser?.first_name || ''} ${editingUser?.last_name || ''}`.trim() || '-'}
+                </p>
+                <p className="text-sm text-gray-500 truncate">{editingUser?.email}</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Role</Label>
+                <Label className="text-sm font-medium">Vai trò</Label>
                 <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="user">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        User
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="admin">
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        Admin
+                      </span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Daily Search Limit</Label>
+                <Label className="text-sm font-medium">Giới hạn tra cứu/ngày</Label>
                 <Input
                   type="number"
                   min="0"
                   value={formData.daily_search_limit}
                   onChange={(e) => setFormData({ ...formData, daily_search_limit: parseInt(e.target.value) || 0 })}
                   required
+                  className="bg-white"
                 />
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
               <input
                 type="checkbox"
                 id="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <Label htmlFor="is_active" className="text-sm font-medium">Account Active</Label>
+              <Label htmlFor="is_active" className="text-sm font-medium text-emerald-800">
+                Tài khoản hoạt động
+              </Label>
             </div>
 
             {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+              <Alert variant="destructive" className="bg-red-50 border-red-200">
+                <AlertDescription className="text-red-700">{error}</AlertDescription>
               </Alert>
             )}
 
-            <div className="flex gap-2 pt-2">
-              <Button type="submit" disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                {loading ? 'Processing...' : 'Update'}
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700 gap-2">
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Lưu thay đổi
+                  </>
+                )}
               </Button>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="gap-2">
+                Hủy
               </Button>
             </div>
           </form>

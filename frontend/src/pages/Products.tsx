@@ -737,12 +737,12 @@ export default function Products() {
           {componentData.key && (
             <form onSubmit={handleSave} className="mt-6 pt-6 border-t">
               {/* Product Selection Header */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-center text-blue-800 font-medium">
+              <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 mb-4">
+                <p className="text-lg text-left text-red-600 font-medium">
                   Data and Calculations in accordance with IEC 61439 and for BERLIVN's product only
                 </p>
-                <hr className="my-3 border-blue-300" />
-                <p className="text-base text-center text-gray-900 font-semibold">
+                <hr className="my-2 border-red-300" />
+                <p className="text-lg text-left text-blue-600 font-semibold">
                   YOU ARE SELECTING PRODUCT CODE "{componentData.key}", DESIGNATION "{componentData.info || 'N/A'}"
                 </p>
               </div>

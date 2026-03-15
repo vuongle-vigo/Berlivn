@@ -163,16 +163,18 @@ function App() {
               <img
                 src={logo}
                 alt="Berlivn Busbar logo"
-                className="w-12 h-12 object-contain rounded-lg shadow-sm"
+                className="h-12 object-contain"
+                style={{ width: 'auto', maxWidth: '180px' }}
               />
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-900">
-                  Berlivn Busbar
-                </h1>
-                <div className="flex items-center gap-3 text-xs text-gray-500 -mt-0.5">
-                  <span>Mobile: +84 28 3844 2266</span>
-                  <span className="hidden md:inline">|</span>
-                  <span className="hidden md:inline">Email: info@berlivn.com</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-bold text-gray-900">
+                    BERLIVN COMPANY LIMITED
+                  </h1>
+                  <span className="text-gray-400">|</span>
+                  <span className="text-base text-blue-600 font-medium">Mobile: +84 978 949 909</span>
+                  <span className="text-gray-400">|</span>
+                  <span className="text-base text-blue-600 font-medium">Email: berlivn1@gmail.com</span>
                 </div>
               </div>
             </div>
@@ -207,64 +209,41 @@ function App() {
                 <span>Logout</span>
               </button>
 
-              {/* DESKTOP TABS */}
+              {/* DESKTOP TABS - Always show as hamburger menu */}
               <div className="hidden lg:flex items-center">
-                <div ref={tabsWrapRef} className="flex gap-1">
-                  {!isTabsCollapsed &&
-                    tabs.map((tab) => {
-                      const Icon = tab.icon;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            activeTab === tab.id
-                              ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
-                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span>{tab.label}</span>
-                        </button>
-                      );
-                    })}
+                <div className="relative">
+                  <button
+                    onClick={() =>
+                      setIsTabsMenuOpen((v) => !v)
+                    }
+                    className="p-2 rounded-lg hover:bg-gray-100"
+                  >
+                    <Menu className="w-8 h-8" />
+                  </button>
+
+                  {isTabsMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-50">
+                      {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => {
+                              setActiveTab(tab.id);
+                              setIsTabsMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 text-base hover:bg-gray-50 ${
+                              activeTab === tab.id ? "bg-blue-50 text-blue-600" : ""
+                            }`}
+                          >
+                            <Icon className="w-5 h-5" />
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-
-                {isTabsCollapsed && (
-                  <div className="relative">
-                    <button
-                      onClick={() =>
-                        setIsTabsMenuOpen((v) => !v)
-                      }
-                      className="p-2 rounded-lg hover:bg-gray-100"
-                    >
-                      <Menu className="w-5 h-5" />
-                    </button>
-
-                    {isTabsMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white border rounded-lg shadow-lg z-50">
-                        {tabs.map((tab) => {
-                          const Icon = tab.icon;
-                          return (
-                            <button
-                              key={tab.id}
-                              onClick={() => {
-                                setActiveTab(tab.id);
-                                setIsTabsMenuOpen(false);
-                              }}
-                              className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 ${
-                                activeTab === tab.id ? "bg-blue-50 text-blue-600" : ""
-                              }`}
-                            >
-                              <Icon className="w-4 h-4" />
-                              {tab.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* MOBILE MENU BUTTON */}
@@ -275,9 +254,9 @@ function App() {
                 className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-6 h-6" />
+                  <X className="w-8 h-8" />
                 ) : (
-                  <Menu className="w-6 h-6" />
+                  <Menu className="w-8 h-8" />
                 )}
               </button>
             </div>

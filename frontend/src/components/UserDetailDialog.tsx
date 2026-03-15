@@ -25,6 +25,8 @@ export default function UserDetailDialog({ user, open, onOpenChange }: UserDetai
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
 
+  const fullName = user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || '-';
+
   useEffect(() => {
     if (user && open && activeTab === 'history') {
       fetchSearchLogs();
@@ -50,7 +52,7 @@ export default function UserDetailDialog({ user, open, onOpenChange }: UserDetai
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Chi tiết người dùng</DialogTitle>
         </DialogHeader>
@@ -75,158 +77,164 @@ export default function UserDetailDialog({ user, open, onOpenChange }: UserDetai
         </div>
 
         {activeTab === 'info' ? (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-bold text-red-600 border-b-2 border-red-200 pb-2">
+          <div className="space-y-5 p-1">
+            {/* Header with user info */}
+            <div className="flex items-center gap-4 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+              <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">
+                  {fullName !== '-' ? fullName.charAt(0).toUpperCase() : '?'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-800">{fullName}</h3>
+                <p className="text-gray-600">{user.email || '-'}</p>
+                <div className="flex gap-2 mt-1">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    user.role === 'admin' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                  }`}>
+                    {user.role === 'admin' ? 'Admin' : 'User'}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {user.is_active ? 'Hoạt động' : 'Tạm khóa'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Info */}
+            <Card className="border-2 border-orange-100">
+              <CardHeader className="pb-2 px-4">
+                <CardTitle className="text-base font-bold text-orange-700 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
                   Thông tin công ty
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {user.company ? (
+              <CardContent className="pt-2 px-4 pb-4 space-y-3">
+                {user.company?.name || user.company_name ? (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-600">Tên công ty</Label>
-                        <p className="font-medium">{user.company.name || '-'}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-orange-600 font-medium">Tên công ty</Label>
+                        <p className="font-semibold text-gray-800 text-sm">{user.company?.name || user.company_name || '-'}</p>
                       </div>
-                      <div>
-                        <Label className="text-gray-600">Số đăng ký</Label>
-                        <p className="font-medium">{user.company.registration_number || '-'}</p>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-orange-600 font-medium">Mã số đăng ký</Label>
+                        <p className="font-semibold text-gray-800 text-sm">{user.company?.registration_number || user.registration_number || '-'}</p>
                       </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-600">Hoạt động</Label>
-                        <p className="font-medium">{user.company.activities || '-'}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-orange-600 font-medium">Lĩnh vực hoạt động</Label>
+                        <p className="font-semibold text-gray-800 text-sm">{user.company?.activities || user.activities || '-'}</p>
                       </div>
-                      {user.company.activities === 'Khác' && user.company.activities_other && (
-                        <div>
-                          <Label className="text-gray-600">Hoạt động khác</Label>
-                          <p className="font-medium">{user.company.activities_other}</p>
-                        </div>
-                      )}
+                      <div className="space-y-1">
+                        <Label className="text-xs text-orange-600 font-medium">Số nhân viên</Label>
+                        <p className="font-semibold text-gray-800 text-sm">{user.company?.employee_count || user.employee_count || '-'}</p>
+                      </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-gray-600">Số lượng nhân viên</Label>
-                        <p className="font-medium">{user.company.employee_count || '-'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-600">Số điện thoại chung</Label>
-                        <p className="font-medium">{user.company.phone || '-'}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-orange-600 font-medium">Điện thoại công ty</Label>
+                        <p className="font-semibold text-gray-800 text-sm">{user.company?.phone || user.company_phone || '-'}</p>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <p className="text-gray-500 italic">Chưa có thông tin công ty</p>
+                  <p className="text-gray-500 italic text-center py-2">Chưa có thông tin công ty</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-bold text-blue-600 border-b-2 border-blue-200 pb-2">
-                  Thông tin người dùng
+            {/* Personal Info */}
+            <Card className="border-2 border-blue-100">
+              <CardHeader className="pb-2 px-4">
+                <CardTitle className="text-base font-bold text-blue-700 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Thông tin cá nhân
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-600">Email</Label>
-                    <p className="font-medium">{user.email || '-'}</p>
+              <CardContent className="pt-2 px-4 pb-4 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Họ</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.first_name || '-'}</p>
                   </div>
-                  <div>
-                    <Label className="text-gray-600">Họ và tên</Label>
-                    <p className="font-medium">{user.full_name || '-'}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-600">Tên</Label>
-                    <p className="font-medium">{user.first_name || '-'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600">Họ và tên đệm</Label>
-                    <p className="font-medium">{user.last_name || '-'}</p>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Tên</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.last_name || '-'}</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-600">Chức vụ</Label>
-                    <p className="font-medium">{user.position || '-'}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Chức vụ</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.job_position || '-'}</p>
                   </div>
-                  <div>
-                    <Label className="text-gray-600">Vai trò hệ thống</Label>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {user.role === 'admin' ? 'Admin' : 'User'}
-                    </span>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Điện thoại trực tiếp</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.direct_phone || '-'}</p>
                   </div>
                 </div>
-
-                <div>
-                  <Label className="text-gray-600">Địa chỉ chuyên nghiệp</Label>
-                  <p className="font-medium">{user.professional_address || '-'}</p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-gray-600">Mã bưu chính</Label>
-                    <p className="font-medium">{user.postal_code || '-'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600">Thành phố</Label>
-                    <p className="font-medium">{user.city || '-'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600">Quốc gia</Label>
-                    <p className="font-medium">{user.country || '-'}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Điện thoại di động</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.mobile_phone || '-'}</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-600">Số điện thoại trực tiếp</Label>
-                    <p className="font-medium">{user.direct_phone || '-'}</p>
+                <div className="space-y-1">
+                  <Label className="text-xs text-blue-600 font-medium">Địa chỉ chuyên nghiệp</Label>
+                  <p className="font-semibold text-gray-800 text-sm">{user.professional_address || '-'}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Mã bưu chính</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.postal_code || '-'}</p>
                   </div>
-                  <div>
-                    <Label className="text-gray-600">Số điện thoại di động</Label>
-                    <p className="font-medium">{user.mobile_phone || '-'}</p>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Thành phố</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.city || '-'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-blue-600 font-medium">Quốc gia</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.country || '-'}</p>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-600">Giới hạn tra cứu/ngày</Label>
-                    <p className="font-medium">{user.daily_search_limit || '0'}</p>
+            {/* Account Info */}
+            <Card className="border-2 border-purple-100">
+              <CardHeader className="pb-2 px-4">
+                <CardTitle className="text-base font-bold text-purple-700 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  Thông tin tài khoản
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2 px-4 pb-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-purple-600 font-medium">Giới hạn tra cứu/ngày</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.daily_search_limit || '0'}</p>
                   </div>
-                  <div>
-                    <Label className="text-gray-600">Trạng thái</Label>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      user.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {user.is_active ? 'Hoạt động' : 'Tạm khóa'}
-                    </span>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-purple-600 font-medium">Tra cứu hôm nay</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.daily_search_remaining || '0'}</p>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-600">Ngày tạo</Label>
-                    <p className="font-medium">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-purple-600 font-medium">Tổng tra cứu</Label>
+                    <p className="font-semibold text-gray-800 text-sm">{user.search_count || '0'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-purple-600 font-medium">Ngày tạo tài khoản</Label>
+                    <p className="font-semibold text-gray-800 text-sm">
                       {user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-600">Cập nhật lần cuối</Label>
-                    <p className="font-medium">
-                      {user.updated_at ? new Date(user.updated_at).toLocaleDateString('vi-VN') : '-'}
                     </p>
                   </div>
                 </div>

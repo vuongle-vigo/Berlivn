@@ -125,7 +125,20 @@ def check_and_increment_search(user_id: str) -> Dict[str, Any]:
 	return {"allowed": True, "remaining": new_remaining, "limit": limit}
 
 def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
-	return db.fetch_one("SELECT * FROM users WHERE id = ?;", (user_id,))
+	row = db.fetch_one("SELECT * FROM users WHERE id = ?;", (user_id,))
+	if not row:
+		return None
+	
+	user = dict(row)
+	# Create nested company object
+	user["company"] = {
+		"name": user.get("company_name"),
+		"registration_number": user.get("registration_number"),
+		"activities": user.get("activities"),
+		"employee_count": user.get("employee_count"),
+		"phone": user.get("company_phone"),
+	}
+	return user
 
 def get_user_by_registration_number(registration_number: str) -> Optional[Dict[str, Any]]:
 	return db.fetch_one("SELECT * FROM users WHERE registration_number = ?;", (registration_number,))
@@ -163,7 +176,23 @@ def delete_user(user_id: str) -> bool:
 	return row is None
 
 def list_users(limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-	return db.fetch_all("SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?;", (limit, offset))
+	rows = db.fetch_all("SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?;", (limit, offset))
+	
+	# Transform to include nested company object
+	users = []
+	for row in rows:
+		user = dict(row)
+		# Create nested company object
+		user["company"] = {
+			"name": user.get("company_name"),
+			"registration_number": user.get("registration_number"),
+			"activities": user.get("activities"),
+			"employee_count": user.get("employee_count"),
+			"phone": user.get("company_phone"),
+		}
+		users.append(user)
+	
+	return users
 
 def get_daily_search_limit(user_id: str) -> Optional[Dict[str, int]]:
 	row = db.fetch_one(

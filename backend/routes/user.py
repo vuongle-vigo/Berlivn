@@ -61,7 +61,10 @@ class UserResponse(BaseModel):
 	daily_search_remaining: Optional[int] = 20
 	search_count: Optional[int] = 0
 	
-	# Company fields
+	# Company as nested object
+	company: Optional[dict] = None
+	
+	# Flattened company fields (kept for compatibility)
 	company_name: str
 	registration_number: str
 	activities: str

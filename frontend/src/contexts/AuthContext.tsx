@@ -4,6 +4,7 @@ interface User {
   id: string;
   email?: string;
   registration_number?: string;
+  is_active?: number;
 }
 
 interface Profile {

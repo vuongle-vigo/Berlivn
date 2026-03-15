@@ -52,10 +52,26 @@ def increment_daily_search_log(user_id: str, log_date: Optional[str] = None) -> 
 	except Exception as exc:
 		print(f"[user_search_logs] upsert error: {exc}")
 
-def get_daily_search_stats(days: int) -> List[Dict[str, Any]]:
-	days = max(1, min(days, 365))
-	start_date = (datetime.now().date() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
-	end_date = datetime.now().strftime("%Y-%m-%d")
+def get_daily_search_stats(days: int = 7, start_date: str = None, end_date: str = None) -> List[Dict[str, Any]]:
+	# Determine date range
+	if start_date and end_date:
+		# Use explicit date range
+		actual_start = start_date
+		actual_end = end_date
+	elif start_date:
+		# From start_date to today
+		actual_start = start_date
+		actual_end = datetime.now().strftime("%Y-%m-%d")
+	elif end_date:
+		# From end_date going back 'days'
+		actual_end = end_date
+		actual_start = (datetime.strptime(end_date, "%Y-%m-%d").date() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+	else:
+		# Default: last 'days' from today
+		days = max(1, min(days, 365))
+		actual_start = (datetime.now().date() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+		actual_end = datetime.now().strftime("%Y-%m-%d")
+	
 	rows = db.fetch_all(
 		"""
 		SELECT log_date, SUM(search_count) AS total_searches
@@ -63,12 +79,12 @@ def get_daily_search_stats(days: int) -> List[Dict[str, Any]]:
 		WHERE log_date BETWEEN ? AND ?
 		GROUP BY log_date
 		""",
-		(start_date, end_date)
+		(actual_start, actual_end)
 	)
 	counts = {row["log_date"]: row["total_searches"] for row in rows}
 	stats: List[Dict[str, Any]] = []
-	current = datetime.strptime(start_date, "%Y-%m-%d").date()
-	end = datetime.strptime(end_date, "%Y-%m-%d").date()
+	current = datetime.strptime(actual_start, "%Y-%m-%d").date()
+	end = datetime.strptime(actual_end, "%Y-%m-%d").date()
 	while current <= end:
 		day = current.strftime("%Y-%m-%d")
 		stats.append({"date": day, "total_searches": counts.get(day, 0)})

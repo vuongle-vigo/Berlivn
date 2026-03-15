@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BarChart3, Users, Search, TrendingUp, Calendar, Activity, ArrowUp, ArrowDown } from 'lucide-react';
+import { BarChart3, Users, Search, TrendingUp, Calendar, Activity, ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -50,6 +50,38 @@ interface AnalyticsTotals {
   today_searches: number;
 }
 
+type TimeRangeType = '7days' | 'month' | 'year';
+
+const MONTHS = [
+  { value: 1, label: 'Tháng 1' },
+  { value: 2, label: 'Tháng 2' },
+  { value: 3, label: 'Tháng 3' },
+  { value: 4, label: 'Tháng 4' },
+  { value: 5, label: 'Tháng 5' },
+  { value: 6, label: 'Tháng 6' },
+  { value: 7, label: 'Tháng 7' },
+  { value: 8, label: 'Tháng 8' },
+  { value: 9, label: 'Tháng 9' },
+  { value: 10, label: 'Tháng 10' },
+  { value: 11, label: 'Tháng 11' },
+  { value: 12, label: 'Tháng 12' },
+];
+
+const getAvailableMonths = (selectedYear: number) => {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  
+  if (selectedYear < currentYear) {
+    return MONTHS;
+  }
+  return MONTHS.filter(m => m.value <= currentMonth);
+};
+
+const YEARS = Array.from({ length: 5 }, (_, i) => {
+  const year = new Date().getFullYear() - i;
+  return { value: year, label: year.toString() };
+});
+
 export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
   const auth = useAuth();
   const { loading } = auth;
@@ -63,9 +95,30 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
     total_searches: 0,
     today_searches: 0,
   });
-  const [timeRange, setTimeRange] = useState(7);
+  const [timeRangeType, setTimeRangeType] = useState<TimeRangeType>('7days');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selected7Days, setSelected7Days] = useState(7);
   const [error, setError] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
+
+  // Calculate start date and end date for API
+  const apiParams = useMemo(() => {
+    const now = new Date();
+    if (timeRangeType === '7days') {
+      const start = new Date(now);
+      start.setDate(start.getDate() - selected7Days + 1);
+      return { days: selected7Days };
+    } else if (timeRangeType === 'month') {
+      const start = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+      const lastDay = new Date(selectedYear, selectedMonth, 0).getDate();
+      const end = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-${lastDay}`;
+      return { start_date: start, end_date: end };
+    } else {
+      // Year - get full year
+      return { start_date: `${selectedYear}-01-01`, end_date: `${selectedYear}-12-31` };
+    }
+  }, [timeRangeType, selected7Days, selectedMonth, selectedYear]);
 
   // Calculate trend data
   const trendData = useMemo(() => {
@@ -85,7 +138,7 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
       setIsFetching(true);
       setError(null);
       try {
-        const res = await getAnalytics(timeRange);
+        const res = await getAnalytics(apiParams);
         if (res.ok && res.data) {
           setDailyStats(res.data.daily_stats || []);
           setTotalStats(res.data.total_stats || totalStats);
@@ -100,7 +153,7 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
       }
     };
     fetchAnalytics();
-  }, [isAdmin, timeRange]);
+  }, [isAdmin, apiParams]);
 
   if (loading) {
     return (
@@ -126,10 +179,33 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
   const maxSearches = dailyStats.reduce((max, stat) => Math.max(max, stat.total_searches), 0) || 1;
 
   // Format data for chart
-  const chartData = dailyStats.map(stat => ({
-    name: stat.date,
-    searches: stat.total_searches,
-  }));
+  const chartData = useMemo(() => {
+    const data = dailyStats.map(stat => ({
+      name: stat.date,
+      searches: stat.total_searches,
+    }));
+    
+    // If viewing year, aggregate by month
+    if (timeRangeType === 'year' && data.length > 31) {
+      const monthlyData: { [key: string]: number } = {};
+      data.forEach(item => {
+        const monthKey = item.name.substring(0, 7); // YYYY-MM
+        monthlyData[monthKey] = (monthlyData[monthKey] || 0) + item.searches;
+      });
+      const months = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+      return Object.entries(monthlyData)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, searches]) => {
+          const monthNum = parseInt(month.split('-')[1]);
+          return {
+            name: months[monthNum - 1],
+            searches,
+          };
+        });
+    }
+    
+    return data;
+  }, [dailyStats, timeRangeType]);
 
   return (
     <div className="space-y-6">
@@ -139,24 +215,76 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
           <h1 className="text-3xl font-bold text-gray-900">Statistics & Analytics</h1>
           <p className="text-gray-500 mt-1">Track system usage and activity</p>
         </div>
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
-          {[
-            { value: 7, label: '7 ngày' },
-            { value: 14, label: '14 ngày' },
-            { value: 30, label: '30 ngày' },
-          ].map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setTimeRange(option.value)}
-              className={`px-4 py-2 rounded-md font-medium text-sm transition-all ${
-                timeRange === option.value
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Time Range Type Tabs */}
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            {[
+              { value: '7days' as const, label: '7 ngày' },
+              { value: 'month' as const, label: 'Tháng' },
+              { value: 'year' as const, label: 'Năm' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setTimeRangeType(option.value)}
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-all ${
+                  timeRangeType === option.value
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Dropdown for specific selection */}
+          {timeRangeType === '7days' && (
+            <select
+              value={selected7Days}
+              onChange={(e) => setSelected7Days(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {option.label}
-            </button>
-          ))}
+              <option value={7}>7 ngày gần nhất</option>
+              <option value={14}>14 ngày gần nhất</option>
+              <option value={30}>30 ngày gần nhất</option>
+            </select>
+          )}
+
+          {timeRangeType === 'month' && (
+            <div className="flex gap-2">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {getAvailableMonths(selectedYear).map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {YEARS.map((y) => (
+                  <option key={y.value} value={y.value}>{y.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {timeRangeType === 'year' && (
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {YEARS.map((y) => (
+                <option key={y.value} value={y.value}>{y.label}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -241,7 +369,13 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
               <div>
                 <p className="text-orange-100 text-sm font-medium">Today's Searches</p>
                 <p className="text-4xl font-bold mt-2">{totalStats.today_searches}</p>
-                <p className="text-orange-200 text-xs mt-1">Last {timeRange} days</p>
+                <p className="text-orange-200 text-xs mt-1">
+                  {timeRangeType === 'year' 
+                    ? `Năm ${selectedYear}` 
+                    : timeRangeType === 'month' 
+                      ? `${MONTHS.find(m => m.value === selectedMonth)?.label} ${selectedYear}`
+                      : `Last ${selected7Days} days`}
+                </p>
               </div>
               <div className="p-3 bg-white/20 rounded-xl">
                 <BarChart3 className="w-7 h-7" />
@@ -258,7 +392,7 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
           <CardHeader>
             <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-600" />
-              Daily Searches
+              {timeRangeType === 'year' ? 'Monthly Searches' : timeRangeType === 'month' ? 'Daily Searches' : 'Daily Searches'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -291,7 +425,7 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
                     dataKey="searches"
                     fill="#3b82f6"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
+                    maxBarSize={timeRangeType === 'year' ? 30 : 50}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -304,7 +438,7 @@ export default function Analytics({ isCurrentAdmin }: AnalyticsProps = {}) {
           <CardHeader>
             <CardTitle className="text-lg font-bold text-gray-800 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-purple-600" />
-              Usage Trend
+              {timeRangeType === 'year' ? 'Monthly Usage Trend' : 'Usage Trend'}
             </CardTitle>
           </CardHeader>
           <CardContent>

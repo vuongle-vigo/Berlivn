@@ -43,10 +43,13 @@ export async function me(token: string) {
 }
 
 // ----------------- new function -----------------
-export async function getAnalytics(days: number, token?: string, activityLimit?: number) {
-  const params = new URLSearchParams({ days: String(days) });
-  if (activityLimit) params.append('activity_limit', String(activityLimit));
-  const url = `${API_BASE}/admin/analytics?${params.toString()}`;
+export async function getAnalytics(params: { days?: number; start_date?: string; end_date?: string } = {}, token?: string, activityLimit?: number = 20) {
+  const queryParams = new URLSearchParams();
+  if (params.days) queryParams.append('days', String(params.days));
+  if (params.start_date) queryParams.append('start_date', params.start_date);
+  if (params.end_date) queryParams.append('end_date', params.end_date);
+  queryParams.append('activity_limit', String(activityLimit));
+  const url = `${API_BASE}/admin/analytics?${queryParams.toString()}`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(url, { method: 'GET', headers });

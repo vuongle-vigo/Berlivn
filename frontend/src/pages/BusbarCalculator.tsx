@@ -11,6 +11,12 @@ import {
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectTrigger,
   SelectValue,
@@ -43,6 +49,18 @@ export default function BusbarCalculator({
   // Prioritize props from App.tsx which handles local storage fallback
   const user = currentUser || authUser;
   const isAdmin = isCurrentAdmin !== undefined ? isCurrentAdmin : authIsAdmin;
+  const isUserActive = user?.is_active === 1;
+
+  const [inactiveAccountOpen, setInactiveAccountOpen] = useState(false);
+
+  // Check if user can perform actions
+  const checkActiveAndProceed = () => {
+    if (user?.id && !isUserActive) {
+      setInactiveAccountOpen(true);
+      return false;
+    }
+    return true;
+  };
 
   const [remainingSearches, setRemainingSearches] = useState<number>(0);
   const [canSearch, setCanSearch] = useState<boolean>(true);
@@ -104,6 +122,13 @@ export default function BusbarCalculator({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-show popup when user is inactive
+  useEffect(() => {
+    if (user?.id && !isUserActive) {
+      setInactiveAccountOpen(true);
+    }
+  }, [user?.id, isUserActive]);
+
   useEffect(() => {
     const fetchUserLimit = async () => {
       if (user?.id && !isAdmin) {
@@ -128,20 +153,41 @@ export default function BusbarCalculator({
   }, [user, isAdmin]);
 
   const handleQuantityChange = (id: string, value: string) => {
-    setQuantities((prev) => ({ ...prev, [id]: value }));
+    const numValue = value.replace(/,/g, '');
+    setQuantities((prev) => ({ ...prev, [id]: numValue }));
+  };
+
+  const handleQuantityBlur = (id: string, value: string) => {
+    const formatted = formatWithCommas(value);
+    setQuantities((prev) => ({ ...prev, [id]: formatted }));
   };
 
   const handlePriceChange = (id: string, value: string) => {
-    setPrices((prev) => ({ ...prev, [id]: value }));
+    const numValue = value.replace(/,/g, '');
+    setPrices((prev) => ({ ...prev, [id]: numValue }));
+  };
+
+  const handlePriceBlur = (id: string, value: string) => {
+    const formatted = formatWithCommas(value);
+    setPrices((prev) => ({ ...prev, [id]: formatted }));
+  };
+
+  const formatWithCommas = (value: string) => {
+    const num = Number(value.replace(/,/g, ''));
+    if (isNaN(num) || value === '') return value;
+    return num.toLocaleString('en-US');
   };
 
   const calculateTotal = (id: string) => {
-    const quantity = Number(quantities[id] || 0);
-    const price = Number(prices[id] || 0);
-    return (quantity * price).toFixed(2);
+    const quantity = Number(String(quantities[id] || 0).replace(/,/g, ''));
+    const price = Number(String(prices[id] || 0).replace(/,/g, ''));
+    const total = quantity * price;
+    return total.toLocaleString('en-US');
   };
 
   const handleSpaceBetweenPhasesSelect = async (value: string) => {
+    if (!checkActiveAndProceed()) return;
+
     const a = Number(value);
     if (Number.isNaN(a)) return;
 
@@ -269,6 +315,8 @@ export default function BusbarCalculator({
   };
 
   const fetchProducts = async () => {
+    if (!checkActiveAndProceed()) return;
+
     if (!isAdmin && remainingSearches <= 0) {
       alert(
         `Bạn đã hết lượt tra cứu hôm nay. Còn lại: ${remainingSearches} lượt`
@@ -400,6 +448,8 @@ export default function BusbarCalculator({
   };
 
   const generateFileLink = (product: any, docType: string) => {
+    if (!checkActiveAndProceed()) return "#";
+
     if (!product?.component_id || !product?.additionalInfo?.[0]?.resmini) {
       return "#";
     }
@@ -608,7 +658,7 @@ export default function BusbarCalculator({
 
             <button
               onClick={fetchProducts}
-              disabled={loading || (!isAdmin && !canSearch)}
+              disabled={loading || !isUserActive || (!isAdmin && !canSearch)}
               className="w-full bg-blue-600 text-white h-9 rounded-md font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
             >
               {loading ? "Loading..." : "Search Products"}
@@ -626,12 +676,12 @@ export default function BusbarCalculator({
             <>
               {/* Product Selection Header - Show when product is selected */}
               {selectedProduct && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-center text-blue-800 font-medium">
-                    Data and Calculations in accordance with IEC 61439 and for BERLIVN's product only
-                  </p>
-                  <hr className="my-3 border-blue-300" />
-                  <p className="text-base text-center text-gray-900 font-semibold">
+                <div className="mb-2">
+                <p className="text-lg text-left text-red-600 font-medium">
+                  Data and Calculations in accordance with IEC 61439 and for BERLIVN's product only
+                </p>
+                  <hr className="my-1 border-red-300" />
+                  <p className="text-base text-left text-blue-600 font-semibold">
                     YOU ARE SELECTING PRODUCT CODE "{selectedProduct.component_id}", DESIGNATION "{selectedProduct.additionalInfo?.[0]?.info || 'N/A'}"
                   </p>
                 </div>
@@ -676,38 +726,38 @@ export default function BusbarCalculator({
                 <Table className="w-full table-auto text-xs">
                   <TableHeader className="sticky top-0 bg-white z-10">
                     <TableRow>
-                      <TableHead className="py-2 px-2 whitespace-nowrap">
+                      <TableHead className="py-1 px-2 whitespace-nowrap">
                         Component ID
                       </TableHead>
-                      <TableHead className="py-2 px-2">Product Name</TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                      <TableHead className="py-1 px-2">Product Name</TableHead>
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap">
                         A
                       </TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap">
                         L
                       </TableHead>
-                      <TableHead className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
+                      <TableHead className="hidden lg:table-cell py-1 px-2 text-center whitespace-nowrap">
                         L&apos;
                       </TableHead>
-                      <TableHead className="hidden lg:table-cell py-2 px-2 text-center whitespace-nowrap">
+                      <TableHead className="hidden lg:table-cell py-1 px-2 text-center whitespace-nowrap">
                         Angle
                       </TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap">
                         Qty
                       </TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap">
                         Price
                       </TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap">
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap">
                         Total
                       </TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap w-14">
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap w-14">
                         Doc
                       </TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap w-14">
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap w-14">
                         2D
                       </TableHead>
-                      <TableHead className="py-2 px-2 text-center whitespace-nowrap w-14">
+                      <TableHead className="py-1 px-2 text-center whitespace-nowrap w-14">
                         3D
                       </TableHead>
                     </TableRow>
@@ -755,22 +805,26 @@ export default function BusbarCalculator({
 
                         <TableCell className="py-2 px-2">
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             value={quantities[product.id] || ""}
                             onChange={(e) =>
                               handleQuantityChange(product.id, e.target.value)
                             }
+                            onBlur={(e) => handleQuantityBlur(product.id, e.target.value)}
                             className="w-full h-7 px-2 text-xs border rounded"
                           />
                         </TableCell>
 
                         <TableCell className="py-2 px-2">
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             value={prices[product.id] || ""}
                             onChange={(e) =>
                               handlePriceChange(product.id, e.target.value)
                             }
+                            onBlur={(e) => handlePriceBlur(product.id, e.target.value)}
                             className="w-full h-7 px-2 text-xs border rounded text-right"
                           />
                         </TableCell>
@@ -829,6 +883,36 @@ export default function BusbarCalculator({
             </>
           )}
         </main>
+
+        {/* Inactive Account Popup */}
+        <Dialog open={inactiveAccountOpen} onOpenChange={setInactiveAccountOpen}>
+          <DialogContent className="max-w-md text-center p-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-red-600 mb-4">
+                Account Not Activated
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Your account is currently not activated. Please contact us for assistance to activate your account.
+              </p>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="flex items-center justify-center gap-3">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  <span className="font-medium">Mobile: +84 978 949 909</span>
+                </div>
+                <div className="flex items-center justify-center gap-3">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span className="font-medium">Email: berlivn1@gmail.com</span>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

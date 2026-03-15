@@ -51,10 +51,9 @@ def authenticate_user(registration_number: str, password: str) -> Optional[Dict[
 		
 	if not bcrypt.verify(password, row.get("password_hash", "")):
 		return None
-		
-	# Kiểm tra tài khoản có active không
-	if row.get("is_active") != 1:
-		return None
+	
+	# Cho phép đăng nhập kể cả khi tài khoản không active
+	# Frontend sẽ hiển thị popup yêu cầu liên hệ khi user thực hiện tra cứu
 
 	row.pop("password_hash", None)
 	return row

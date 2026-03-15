@@ -155,47 +155,61 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100">
       {/* ================= HEADER ================= */}
-      <header className="bg-white/80 backdrop-blur-lg shadow border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white/90 backdrop-blur-lg shadow-md border-b border-gray-200 sticky top-0 z-50">
         <div className="w-full px-3 sm:px-4 lg:px-6">
-          <div className="flex items-center justify-between min-h-14 py-2">
+          <div className="flex items-center justify-between min-h-16 py-2">
             {/* LEFT */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <img
                 src={logo}
                 alt="Berlivn Busbar logo"
-                className="w-10 h-10 object-contain"
+                className="w-12 h-12 object-contain rounded-lg shadow-sm"
               />
-              <h1 className="text-lg font-bold text-gray-900">
-                Berlivn Busbar
-              </h1>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-gray-900">
+                  Berlivn Busbar
+                </h1>
+                <div className="flex items-center gap-3 text-xs text-gray-500 -mt-0.5">
+                  <span>Mobile: +84 28 3844 2266</span>
+                  <span className="hidden md:inline">|</span>
+                  <span className="hidden md:inline">Email: info@berlivn.com</span>
+                </div>
+              </div>
             </div>
 
             {/* RIGHT */}
             <div
               ref={headerRightRef}
-              className="flex items-center gap-3"
+              className="flex items-center gap-2"
             >
-              {/* USER */}
-              <div className="hidden md:flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-gray-600" />
-                <span className="text-gray-700">
-                  {profile?.first_name
-                    ? `${profile.first_name} ${profile.last_name}`
-                    : profile?.full_name || user.email}
-                </span>
+              {/* USER INFO */}
+              <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-gray-50 rounded-lg">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <div className="text-sm">
+                  <span className="text-gray-700 font-medium">
+                    {profile?.full_name || user.email}
+                  </span>
+                  {isAdmin && (
+                    <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full font-medium">
+                      Admin
+                    </span>
+                  )}
+                </div>
               </div>
 
               <button
                 onClick={handleSignOut}
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                className="hidden md:flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                Logout
+                <span>Logout</span>
               </button>
 
               {/* DESKTOP TABS */}
               <div className="hidden lg:flex items-center">
-                <div ref={tabsWrapRef} className="flex gap-2">
+                <div ref={tabsWrapRef} className="flex gap-1">
                   {!isTabsCollapsed &&
                     tabs.map((tab) => {
                       const Icon = tab.icon;
@@ -203,10 +217,10 @@ function App() {
                         <button
                           key={tab.id}
                           onClick={() => setActiveTab(tab.id)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm ${
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                             activeTab === tab.id
-                              ? "bg-blue-600 text-white"
-                              : "text-gray-600 hover:bg-gray-100"
+                              ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md"
+                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                           }`}
                         >
                           <Icon className="w-4 h-4" />
@@ -238,7 +252,9 @@ function App() {
                                 setActiveTab(tab.id);
                                 setIsTabsMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50"
+                              className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 ${
+                                activeTab === tab.id ? "bg-blue-50 text-blue-600" : ""
+                              }`}
                             >
                               <Icon className="w-4 h-4" />
                               {tab.label}
@@ -270,7 +286,7 @@ function App() {
       </header>
 
       {/* ================= MAIN ================= */}
-      <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-4">
         {activeTab === "busbar" && (
           <BusbarCalculator
             onSearchComplete={fetchSearchStats}

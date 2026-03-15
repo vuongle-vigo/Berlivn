@@ -128,7 +128,7 @@ export default function Products() {
     const file = e.target.files[0];
     if (file) {
       if (!allowedImageTypes.includes(file.type)) {
-        setError(`Vui lòng chọn file ảnh định dạng JPEG, PNG hoặc WEBP cho ảnh ${imgKey.slice(-1)}`);
+        setError(`Please select a valid image format (JPEG, PNG or WEBP) for image ${imgKey.slice(-1)}`);
         return;
       }
       if (file.size > maxImageSize) {
@@ -608,35 +608,36 @@ export default function Products() {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-red-500">Products</CardTitle>
+    <div className="container mx-auto p-4 space-y-6">
+      <Card className="border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-t-lg">
+          <CardTitle className="text-2xl font-bold">Product Management</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {/* Search Form */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+          <div className="flex flex-col lg:flex-row gap-4">
             <form
               onSubmit={(e) => {
                 setShouldSearch(true);
                 handleSearch(e);
               }}
-              className="space-y-4 flex-1"
+              className="flex-1"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="space-y-2">
-                  <Label htmlFor="componentId">Component ID (Mã sản phẩm)</Label>
+                  <Label htmlFor="componentId" className="text-sm font-medium">Component ID (Product Code)</Label>
                   <Input
                     id="componentId"
                     name="componentId"
                     value={componentId}
                     onChange={handleSearchChange}
-                    placeholder="Nhập mã sản phẩm"
+                    placeholder="Enter product code"
                     required
+                    className="h-10"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="searchNbphase">Per phases (Số pha)</Label>
+                  <Label htmlFor="searchNbphase" className="text-sm font-medium">Per phases</Label>
                   <Input
                     id="searchNbphase"
                     name="searchNbphase"
@@ -645,24 +646,25 @@ export default function Products() {
                     min="0"
                     value={searchNbphase}
                     onChange={handleSearchChange}
-                    placeholder="Nhập Số pha"
+                    placeholder="Enter number of phases"
                     required
+                    className="h-10"
                   />
                 </div>
               </div>
-              <div className="flex">
-                <Button type="submit" className="w-full md:w-auto">
-                  Tìm kiếm
-                </Button>
-              </div>
+              <Button type="submit" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">
+                Search
+              </Button>
             </form>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full md:w-auto self-start">Thêm mới</Button>
+                <Button className="w-full md:w-auto bg-green-600 hover:bg-green-700">
+                  Add New
+                </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-[720px] md:max-w-[760px] p-6 space-y-4">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Thêm Component Mới</DialogTitle>
+                  <DialogTitle className="text-xl font-bold">Add New Component</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleCreate} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -677,7 +679,7 @@ export default function Products() {
                       { label: "Shape (C, P, I, E)", name: "shape", type: "text" },
                     ].map((field) => (
                       <div key={field.name} className="space-y-2">
-                        <Label htmlFor={field.name}>{field.label}</Label>
+                        <Label htmlFor={field.name} className="text-sm font-medium">{field.label}</Label>
                         <Input
                           id={field.name}
                           name={field.name}
@@ -691,8 +693,8 @@ export default function Products() {
                         />
                       </div>
                     ))}
-                    <div className="space-y-2">
-                      <Label htmlFor="info">Thông tin sản phẩm</Label>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="info" className="text-sm font-medium">Thông tin sản phẩm</Label>
                       <Textarea
                         id="info"
                         name="info"
@@ -701,10 +703,11 @@ export default function Products() {
                         placeholder="Nhập thông tin (ví dụ: mô tả, tính năng)"
                         required
                         minLength={1}
+                        rows={3}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="a_list">Danh sách giá trị A</Label>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="a_list" className="text-sm font-medium">Danh sách giá trị A</Label>
                       <Textarea
                         id="a_list"
                         name="a_list"
@@ -713,14 +716,17 @@ export default function Products() {
                         placeholder="Nhập danh sách giá trị A (ví dụ: 65, 75, 85)"
                         required
                         minLength={1}
+                        rows={3}
                       />
                     </div>
                   </div>
-                  <div className="flex justify-end space-x-4">
+                  <div className="flex justify-end space-x-4 pt-4 border-t">
                     <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                      Hủy
+                      Cancel
                     </Button>
-                    <Button type="submit">Thêm</Button>
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                      Add
+                    </Button>
                   </div>
                 </form>
               </DialogContent>
@@ -729,8 +735,23 @@ export default function Products() {
 
           {/* Component Data Form */}
           {componentData.key && (
-            <form onSubmit={handleSave} className="mt-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSave} className="mt-6 pt-6 border-t">
+              {/* Product Selection Header */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-center text-blue-800 font-medium">
+                  Data and Calculations in accordance with IEC 61439 and for BERLIVN's product only
+                </p>
+                <hr className="my-3 border-blue-300" />
+                <p className="text-base text-center text-gray-900 font-semibold">
+                  YOU ARE SELECTING PRODUCT CODE "{componentData.key}", DESIGNATION "{componentData.info || 'N/A'}"
+                </p>
+              </div>
+
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span className="w-1 h-6 bg-blue-600 rounded-full"></span>
+                Component Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {[
                   { label: "Component ID (Mã sản phẩm)", name: "key", type: "text", readOnly: true },
                   { label: "Angle (Góc °)", name: "angle", type: "number", step: "1" },
@@ -741,7 +762,7 @@ export default function Products() {
                   { label: "Shape (C, P, I, E)", name: "shape", type: "text" },
                 ].map((field) => (
                   <div key={field.name} className="space-y-2">
-                    <Label htmlFor={field.name}>{field.label}</Label>
+                    <Label htmlFor={field.name} className="text-sm font-medium">{field.label}</Label>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -753,11 +774,12 @@ export default function Products() {
                       placeholder={`Nhập ${field.label}`}
                       readOnly={field.readOnly}
                       required={!field.readOnly}
+                      className={field.readOnly ? "bg-gray-100" : ""}
                     />
                   </div>
                 ))}
-                <div className="space-y-2">
-                  <Label htmlFor="info">Thông tin sản phẩm</Label>
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="info" className="text-sm font-medium">Thông tin sản phẩm</Label>
                   <Textarea
                     id="info"
                     name="info"
@@ -766,10 +788,11 @@ export default function Products() {
                     placeholder="Nhập thông tin (ví dụ: mô tả, tính năng)"
                     required
                     minLength={1}
+                    rows={3}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="a_list">Danh sách giá trị A</Label>
+                  <Label htmlFor="a_list" className="text-sm font-medium">Danh sách giá trị A</Label>
                   <Textarea
                     id="a_list"
                     name="a_list"
@@ -778,24 +801,28 @@ export default function Products() {
                     placeholder="Nhập danh sách giá trị A (ví dụ: 65, 75, 85)"
                     required
                     minLength={1}
+                    rows={3}
                   />
                 </div>
               </div>
 
               {/* Image Management Section */}
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-4">Quản lý ảnh sản phẩm</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="mt-8 pt-6 border-t">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span className="w-1 h-6 bg-green-600 rounded-full"></span>
+                Product Images
+              </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {["img1", "img2", "img3"].map((imgKey) => (
                     <div key={imgKey} className="space-y-2">
-                      <Label>Ảnh {imgKey.slice(-1)} ({images[imgKey].extension.toUpperCase()})</Label>
-                      <div className="border p-2 rounded">
+                      <Label className="text-sm font-medium">Ảnh {imgKey.slice(-1)} ({images[imgKey].extension.toUpperCase()})</Label>
+                      <div className="border rounded-lg p-3 bg-gray-50">
                         {images[imgKey].url ? (
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             <img
                               src={images[imgKey].url}
                               alt={`Ảnh ${imgKey.slice(-1)}`}
-                              className="w-full h-32 object-cover rounded"
+                              className="w-full h-40 object-cover rounded-lg border"
                             />
                             <Button
                               type="button"
@@ -808,15 +835,15 @@ export default function Products() {
                             </Button>
                           </div>
                         ) : (
-                          <div className="w-full h-32 bg-gray-100 flex items-center justify-center rounded">
-                            <span>Chưa có ảnh</span>
+                          <div className="w-full h-40 bg-gray-200 flex items-center justify-center rounded-lg">
+                            <span className="text-gray-400">Chưa có ảnh</span>
                           </div>
                         )}
                         <Input
                           type="file"
                           accept="image/jpeg,image/png,image/webp"
                           onChange={(e) => handleImageChange(e, imgKey)}
-                          className="mt-2"
+                          className="mt-3"
                         />
                       </div>
                     </div>
@@ -825,22 +852,29 @@ export default function Products() {
               </div>
 
               {/* Document Management Section */}
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-4">Quản lý tài liệu sản phẩm</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="mt-8 pt-6 border-t">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span className="w-1 h-6 bg-purple-600 rounded-full"></span>
+                Product Documents
+              </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {["doc", "2d", "3d"].map((docKey) => (
                     <div key={docKey} className="space-y-2">
-                      <Label>Tài liệu {docKey.toUpperCase()} {documents[docKey].extension ? `(${documents[docKey].extension.toUpperCase()})` : ''}</Label>
-                      <div className="border p-2 rounded">
+                      <Label className="text-sm font-medium">
+                        Tài liệu {docKey.toUpperCase()} {documents[docKey].extension ? `(${documents[docKey].extension.toUpperCase()})` : ''}
+                      </Label>
+                      <div className="border rounded-lg p-3 bg-gray-50">
                         {documents[docKey].url ? (
-                          <div className="space-y-2">
-                            <a
-                              href={documents[docKey].url}
-                              download={documents[docKey].name}
-                              className="text-blue-600 hover:underline block truncate"
-                            >
-                              {documents[docKey].name}
-                            </a>
+                          <div className="space-y-3">
+                            <div className="p-4 bg-white rounded-lg border text-center">
+                              <a
+                                href={documents[docKey].url}
+                                download={documents[docKey].name}
+                                className="text-blue-600 hover:underline text-sm font-medium block truncate"
+                              >
+                                {documents[docKey].name}
+                              </a>
+                            </div>
                             <Button
                               type="button"
                               variant="destructive"
@@ -852,18 +886,17 @@ export default function Products() {
                             </Button>
                           </div>
                         ) : (
-                          <div className="w-full h-16 bg-gray-100 flex items-center justify-center rounded">
-                            <span>Chưa có tài liệu</span>
+                          <div className="w-full h-20 bg-gray-200 flex items-center justify-center rounded-lg">
+                            <span className="text-gray-400">Chưa có tài liệu</span>
                           </div>
                         )}
                         <Input
                           type="file"
                           accept={docKey === '3d' ? '*' : '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
                           onChange={(e) => {
-                            console.log(`File input changed for ${docKey}:`, e.target.files[0]);
                             handleDocumentChange(e, docKey);
                           }}
-                          className="mt-2"
+                          className="mt-3"
                         />
                       </div>
                     </div>
@@ -871,10 +904,10 @@ export default function Products() {
                 </div>
               </div>
 
-              <div className="flex space-x-4">
-                <Button type="submit" className="w-full md:w-auto">Lưu thay đổi</Button>
+              <div className="flex space-x-4 mt-6 pt-6 border-t">
+                <Button type="submit" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700">Save Changes</Button>
                 <Button type="button" variant="destructive" className="w-full md:w-auto" onClick={handleDelete}>
-                  Xóa
+                  Delete
                 </Button>
               </div>
             </form>
@@ -882,13 +915,17 @@ export default function Products() {
 
           {/* Display response or error */}
           {response && (
-            <Alert className="mt-4">
-              <AlertDescription><strong>Phản hồi:</strong> {response}</AlertDescription>
+            <Alert className="mt-6 bg-green-50 border-green-200">
+              <AlertDescription className="text-green-800">
+                <span className="font-semibold">Thành công:</span> {response}
+              </AlertDescription>
             </Alert>
           )}
           {error && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertDescription><strong>Lỗi:</strong> {error}</AlertDescription>
+            <Alert variant="destructive" className="mt-6">
+              <AlertDescription>
+                <span className="font-semibold">Lỗi:</span> {error}
+              </AlertDescription>
             </Alert>
           )}
         </CardContent>

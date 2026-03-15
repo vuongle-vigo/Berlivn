@@ -624,9 +624,18 @@ export default function BusbarCalculator({
             </div>
           ) : (
             <>
-              <div className="text-center text-lg font-bold text-blue-600 mb-2">
-                {selectedProduct?.additionalInfo?.[0]?.info || "Bar Support"}
-              </div>
+              {/* Product Selection Header - Show when product is selected */}
+              {selectedProduct && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-center text-blue-800 font-medium">
+                    Data and Calculations in accordance with IEC 61439 and for BERLIVN's product only
+                  </p>
+                  <hr className="my-3 border-blue-300" />
+                  <p className="text-base text-center text-gray-900 font-semibold">
+                    YOU ARE SELECTING PRODUCT CODE "{selectedProduct.component_id}", DESIGNATION "{selectedProduct.additionalInfo?.[0]?.info || 'N/A'}"
+                  </p>
+                </div>
+              )}
 
               {/* compact images (no border, smaller) */}
               <div className="mb-3">

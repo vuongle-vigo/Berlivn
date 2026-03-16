@@ -1,14 +1,15 @@
 from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime
+from typing import Optional
 from models import log_query as log_model
 
 router = APIRouter(prefix="/admin", tags=["analytics"])
 
 @router.get("/analytics")
 def get_analytics(
-	days: int | None = Query(default=None, ge=1, le=365),
-	start_date: str | None = Query(default=None, description="Start date (YYYY-MM-DD)"),
-	end_date: str | None = Query(default=None, description="End date (YYYY-MM-DD)"),
+	days: Optional[int] = Query(default=None, ge=1, le=365),
+	start_date: Optional[str] = Query(default=None, description="Start date (YYYY-MM-DD)"),
+	end_date: Optional[str] = Query(default=None, description="End date (YYYY-MM-DD)"),
 	activity_limit: int = Query(20, ge=1, le=100)
 ):
 	try:

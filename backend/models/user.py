@@ -1,6 +1,7 @@
 from typing import Optional, Dict, Any, List
 import uuid
 from datetime import datetime
+from passlib.hash import bcrypt
 from database.database import Database
 from models import log_query
 
@@ -227,3 +228,14 @@ def decrement_daily_search_limit(user_id: str) -> Optional[Dict[str, int]]:
 	)
 	log_query.increment_daily_search_log(user_id)
 	return {"daily_search_limit": limit, "daily_search_remaining": new_remaining}
+
+def reset_password(user_id: str, new_password: str) -> bool:
+	"""Reset password for a user (admin function)."""
+	pw_hash = bcrypt.hash(new_password)
+	db.execute(
+		"UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?;",
+		(pw_hash, user_id),
+		commit=True
+	)
+	row = db.fetch_one("SELECT id FROM users WHERE id = ?;", (user_id,))
+	return row is not None

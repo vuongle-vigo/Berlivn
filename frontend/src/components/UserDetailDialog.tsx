@@ -3,8 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { getUserSearchLogs } from '@/api/api';
-import { History, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { getUserSearchLogs, resetUserPassword } from '@/api/api';
+import { History, Loader2, KeyRound } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserDetailProps {
   user: any;
@@ -21,9 +23,17 @@ interface SearchLog {
 }
 
 export default function UserDetailDialog({ user, open, onOpenChange }: UserDetailProps) {
+  const { token } = useAuth();
   const [searchLogs, setSearchLogs] = useState<SearchLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'history'>('info');
+  
+  // Password reset state
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fullName = user?.full_name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || '-';
 
@@ -48,11 +58,42 @@ export default function UserDetailDialog({ user, open, onOpenChange }: UserDetai
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      setResetMessage({ type: 'error', text: 'Password must be at least 6 characters' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetMessage({ type: 'error', text: 'Passwords do not match' });
+      return;
+    }
+    setResetLoading(true);
+    setResetMessage(null);
+    try {
+      const res = await resetUserPassword(user.id, newPassword, token || undefined);
+      if (res.ok) {
+        setResetMessage({ type: 'success', text: 'Password reset successfully' });
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          setShowPasswordReset(false);
+          setResetMessage(null);
+        }, 1500);
+      } else {
+        setResetMessage({ type: 'error', text: res.error?.message || 'Failed to reset password' });
+      }
+    } catch (err) {
+      setResetMessage({ type: 'error', text: 'An error occurred' });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl">Chi tiết người dùng</DialogTitle>
         </DialogHeader>
@@ -238,6 +279,19 @@ export default function UserDetailDialog({ user, open, onOpenChange }: UserDetai
                     </p>
                   </div>
                 </div>
+                
+                {/* Reset Password Button */}
+                <div className="mt-4 pt-4 border-t border-purple-100">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPasswordReset(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    Reset Password
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -283,6 +337,65 @@ export default function UserDetailDialog({ user, open, onOpenChange }: UserDetai
           </div>
         )}
       </DialogContent>
+      
+      {/* Password Reset Dialog */}
+      <Dialog open={showPasswordReset} onOpenChange={setShowPasswordReset}>
+        <DialogContent className="max-w-md p-6">
+          <DialogHeader className="pb-4">
+            <DialogTitle>Reset Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Enter a new password for user <strong>{user.email}</strong>
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 6 characters)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+            {resetMessage && (
+              <p className={`text-sm ${resetMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                {resetMessage.text}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => {
+                setShowPasswordReset(false);
+                setNewPassword('');
+                setConfirmPassword('');
+                setResetMessage(null);
+              }}>
+                Cancel
+              </Button>
+              <Button onClick={handleResetPassword} disabled={resetLoading}>
+                {resetLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  'Reset Password'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

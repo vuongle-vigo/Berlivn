@@ -180,7 +180,7 @@ export default function AdminDashboard({ isCurrentAdmin }: { isCurrentAdmin?: bo
     setFormData({
       role: user.role || 'user',
       daily_search_limit: user.daily_search_limit || 10,
-      is_active: user.is_active !== false,
+      is_active: user.is_active === true,
     });
     setDialogOpen(true);
   };

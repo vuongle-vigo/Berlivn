@@ -198,3 +198,25 @@ def decrement_daily_search_limit(user_id: str):
 		raise
 	except Exception:
 		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+class ResetPasswordRequest(BaseModel):
+	password: str
+
+@router.post("/{user_id}/reset_password")
+def reset_user_password(user_id: str, req: ResetPasswordRequest):
+	try:
+		if not hasattr(user_model, "reset_password"):
+			raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="reset_password not implemented in models.user")
+		
+		if not req.password or len(req.password) < 6:
+			raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 6 characters")
+		
+		ok = user_model.reset_password(user_id, req.password)
+		if not ok:
+			raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+		
+		return {"message": "Password reset successfully"}
+	except HTTPException:
+		raise
+	except Exception:
+		raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")

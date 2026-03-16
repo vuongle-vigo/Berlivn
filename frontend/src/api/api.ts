@@ -287,6 +287,23 @@ export async function deleteUser(userId: string, token?: string) {
   }
 }
 
+export async function resetUserPassword(userId: string, newPassword: string, token?: string) {
+  const url = `${API_BASE}/users/${encodeURIComponent(userId)}/reset_password`;
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ password: newPassword }),
+    });
+    const data = await safeJson(res);
+    return { ok: res.ok, status: res.status, data };
+  } catch (err) {
+    return { ok: false, status: 0, data: null, error: err };
+  }
+}
+
 export async function incrementUserSearch(userId: string, token?: string) {
   const url = `${API_BASE}/users/${encodeURIComponent(userId)}/increment_search`;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -424,5 +441,6 @@ export default {
   getAllUsers,
   updateUserAdmin,
   deleteUserProfile,
+  resetUserPassword,
   API_BASE
 };

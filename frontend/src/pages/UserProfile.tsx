@@ -17,28 +17,28 @@ import { getUser, updateUser } from '../api/api';
 import { Save, Key } from 'lucide-react';
 
 const ACTIVITIES_OPTIONS = [
-  'Sản xuất',
-  'Thương mại',
-  'Dịch vụ',
-  'Xây dựng',
-  'Công nghệ thông tin',
-  'Giáo dục',
-  'Y tế',
-  'Khác'
+  'Manufacturing',
+  'Trading',
+  'Services',
+  'Construction',
+  'Information Technology',
+  'Education',
+  'Healthcare',
+  'Other'
 ];
 
 const EMPLOYEE_COUNT_OPTIONS = [
-  '0 đến 10',
+  '0 to 10',
   '11–50',
   '51–200',
   '200+'
 ];
 
 const POSITION_OPTIONS = [
-  'Nhân viên',
-  'Quản lý',
-  'Giám đốc',
-  'Tổng giám đốc'
+  'Employee',
+  'Manager',
+  'Director',
+  'CEO'
 ];
 
 const COUNTRIES = [
@@ -182,11 +182,11 @@ export default function UserProfile() {
 
       const res = await updateUser(user.id, payload);
 
-      if (!res.ok) throw new Error(res.data?.detail || 'Có lỗi xảy ra khi cập nhật');
+      if (!res.ok) throw new Error(res.data?.detail || 'Failed to update profile');
 
-      setSuccess('Cập nhật thông tin thành công!');
+      setSuccess('Profile updated successfully!');
     } catch (err: any) {
-      setError(err.message || 'Có lỗi xảy ra khi cập nhật');
+      setError(err.message || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -196,12 +196,12 @@ export default function UserProfile() {
     setPasswordError('');
 
     if (newPassword.length < 6) {
-      setPasswordError('Mật khẩu phải có ít nhất 6 ký tự');
+      setPasswordError('Password must be at least 6 characters');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Mật khẩu xác nhận không khớp');
+      setPasswordError('Passwords do not match');
       return;
     }
 
@@ -212,11 +212,11 @@ export default function UserProfile() {
 
       if (!res.ok) throw new Error(res.data?.detail || 'Failed to update password');
 
-      alert('Đổi mật khẩu thành công!');
+      alert('Password changed successfully!');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      setPasswordError(err.message || 'Có lỗi xảy ra');
+      setPasswordError(err.message || 'An error occurred');
     } finally {
       setChangingPassword(false);
     }
@@ -231,10 +231,10 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 py-6 px-4">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Thông tin cá nhân</h1>
-        <p className="text-sm text-gray-600 mt-2">Xem và chỉnh sửa thông tin cá nhân và công ty của bạn</p>
+        <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+        <p className="text-sm text-gray-600 mt-2">View and edit your personal and company information</p>
       </div>
 
       {error && (
@@ -252,12 +252,12 @@ export default function UserProfile() {
       <Card>
           <CardHeader>
             <CardTitle className="text-xl font-bold text-red-600 border-b-2 border-red-200 pb-2">
-              PHẦN 1: THÔNG TIN CÔNG TY
+              SECTION 1: COMPANY INFORMATION
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="companyName">Tên công ty <span className="text-red-500">*</span></Label>
+              <Label htmlFor="companyName">Company Name <span className="text-red-500">*</span></Label>
               <Input
                 id="companyName"
                 value={companyData.name}
@@ -266,25 +266,25 @@ export default function UserProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="registrationNumber">Tên đăng nhập (Mã số thuế)</Label>
+              <Label htmlFor="registrationNumber">Tax Code / Registration Number</Label>
               <Input
                 id="registrationNumber"
                 value={companyData.registrationNumber}
                 disabled
                 className="bg-gray-100"
               />
-              <p className="text-sm text-gray-500">Thông tin đăng nhập không thể thay đổi</p>
+              <p className="text-sm text-gray-500">Login information cannot be changed</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="activities">Các hoạt động <span className="text-red-500">*</span></Label>
+                <Label htmlFor="activities">Industry <span className="text-red-500">*</span></Label>
                 <Select
                   value={companyData.activities}
                   onValueChange={(value) => handleCompanyChange('activities', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn hoạt động" />
+                    <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
                   <SelectContent>
                     {ACTIVITIES_OPTIONS.map(option => (
@@ -296,9 +296,9 @@ export default function UserProfile() {
                 </Select>
               </div>
 
-              {companyData.activities === 'Khác' && (
+              {companyData.activities === 'Other' && (
                 <div className="space-y-2">
-                  <Label htmlFor="activitiesOther">Khác (ghi rõ)</Label>
+                  <Label htmlFor="activitiesOther">Other (please specify)</Label>
                   <Input
                     id="activitiesOther"
                     value={companyData.activitiesOther}
@@ -310,13 +310,13 @@ export default function UserProfile() {
 
             <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="employeeCount">Số lượng nhân viên <span className="text-red-500">*</span></Label>
+                <Label htmlFor="employeeCount">Number of Employees <span className="text-red-500">*</span></Label>
                 <Select
                   value={companyData.employeeCount}
                   onValueChange={(value) => handleCompanyChange('employeeCount', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn số lượng" />
+                    <SelectValue placeholder="Select count" />
                   </SelectTrigger>
                   <SelectContent>
                     {EMPLOYEE_COUNT_OPTIONS.map(option => (
@@ -329,7 +329,7 @@ export default function UserProfile() {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="companyPhone">Số điện thoại chung <span className="text-red-500">*</span></Label>
+                <Label htmlFor="companyPhone">Company Phone <span className="text-red-500">*</span></Label>
                 <Input
                   id="companyPhone"
                   type="tel"
@@ -345,38 +345,38 @@ export default function UserProfile() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-bold text-blue-600 border-b-2 border-blue-200 pb-2">
-              PHẦN 2: THÔNG TIN NGƯỜI DÙNG
+              SECTION 2: USER INFORMATION
             </CardTitle>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Key className="w-4 h-4 mr-2" />
-                  Thay đổi mật khẩu
+                  Change Password
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="p-6">
                 <DialogHeader>
-                  <DialogTitle>Thay đổi mật khẩu</DialogTitle>
+                  <DialogTitle>Change Password</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                    <Label htmlFor="newPassword">New Password</Label>
                     <Input
                       id="newPassword"
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Nhập mật khẩu mới"
+                      placeholder="Enter new password"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <Input
                       id="confirmPassword"
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Nhập lại mật khẩu mới"
+                      placeholder="Confirm new password"
                     />
                   </div>
                   {passwordError && (
@@ -389,7 +389,7 @@ export default function UserProfile() {
                     disabled={changingPassword}
                     className="w-full"
                   >
-                    {changingPassword ? 'Đang xử lý...' : 'Đổi mật khẩu'}
+                    {changingPassword ? 'Processing...' : 'Change Password'}
                   </Button>
                 </div>
               </DialogContent>
@@ -398,7 +398,7 @@ export default function UserProfile() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email liên hệ <span className="text-red-500">*</span></Label>
+            <Label htmlFor="email">Contact Email <span className="text-red-500">*</span></Label>
             <Input
               id="email"
               type="email"
@@ -406,12 +406,12 @@ export default function UserProfile() {
               disabled
               className="bg-gray-100"
             />
-            <p className="text-sm text-gray-500">Email không thể thay đổi</p>
+            <p className="text-sm text-gray-500">Email cannot be changed</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="firstName">Tên <span className="text-red-500">*</span></Label>
+                <Label htmlFor="firstName">First Name <span className="text-red-500">*</span></Label>
                 <Input
                   id="firstName"
                   value={profileData.firstName}
@@ -420,7 +420,7 @@ export default function UserProfile() {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="lastName">Họ và tên đệm <span className="text-red-500">*</span></Label>
+                <Label htmlFor="lastName">Last Name <span className="text-red-500">*</span></Label>
                 <Input
                   id="lastName"
                   value={profileData.lastName}
@@ -430,13 +430,13 @@ export default function UserProfile() {
           </div>
 
           <div className="space-y-2">
-              <Label htmlFor="position">Chức vụ <span className="text-red-500">*</span></Label>
+              <Label htmlFor="position">Job Position <span className="text-red-500">*</span></Label>
               <Select
                 value={profileData.position}
                 onValueChange={(value) => handleProfileChange('position', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn chức vụ" />
+                  <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
                   {POSITION_OPTIONS.map(option => (
@@ -449,7 +449,7 @@ export default function UserProfile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="professionalAddress">Địa chỉ chuyên nghiệp <span className="text-red-500">*</span></Label>
+              <Label htmlFor="professionalAddress">Professional Address <span className="text-red-500">*</span></Label>
               <Input
                 id="professionalAddress"
                 value={profileData.professionalAddress}
@@ -459,16 +459,16 @@ export default function UserProfile() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="postalCode">Mã bưu chính <span className="text-red-500">*</span></Label>
+                <Label htmlFor="postalCode">Postal Code <span className="text-red-500">*</span></Label>
                 <Input
                   id="postalCode"
                   value={profileData.postalCode}
                   onChange={(e) => handleProfileChange('postalCode', e.target.value)}
-                />
+              />
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="city">Thành phố <span className="text-red-500">*</span></Label>
+                <Label htmlFor="city">City <span className="text-red-500">*</span></Label>
                 <Input
                   id="city"
                   value={profileData.city}
@@ -477,13 +477,13 @@ export default function UserProfile() {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="country">Quốc gia <span className="text-red-500">*</span></Label>
+                <Label htmlFor="country">Country <span className="text-red-500">*</span></Label>
                 <Select
                   value={profileData.country}
                   onValueChange={(value) => handleProfileChange('country', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn quốc gia" />
+                    <SelectValue placeholder="Select country" />
                   </SelectTrigger>
                   <SelectContent>
                     {COUNTRIES.map(country => (
@@ -498,7 +498,7 @@ export default function UserProfile() {
 
             <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-                <Label htmlFor="directPhone">Số điện thoại trực tiếp <span className="text-red-500">*</span></Label>
+                <Label htmlFor="directPhone">Direct Phone <span className="text-red-500">*</span></Label>
                 <Input
                   id="directPhone"
                   type="tel"
@@ -508,7 +508,7 @@ export default function UserProfile() {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="mobilePhone">Số điện thoại di động <span className="text-red-500">*</span></Label>
+                <Label htmlFor="mobilePhone">Mobile Phone <span className="text-red-500">*</span></Label>
                 <Input
                   id="mobilePhone"
                   type="tel"
@@ -530,12 +530,12 @@ export default function UserProfile() {
           {saving ? (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Đang lưu...
+              Saving...
             </div>
           ) : (
             <>
               <Save className="w-4 h-4 mr-2" />
-              Lưu thay đổi
+              Save Changes
             </>
           )}
         </Button>

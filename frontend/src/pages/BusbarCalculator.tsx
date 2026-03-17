@@ -689,7 +689,7 @@ export default function BusbarCalculator({
 
               {/* compact images (no border, smaller) */}
               <div className="mb-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-gray-50 rounded flex items-center justify-center">
                     <img
                       src={image1}
@@ -702,6 +702,14 @@ export default function BusbarCalculator({
                     <img
                       src={image2}
                       alt="Image 2"
+                      className="w-full h-auto max-h-[260px] object-contain"
+                    />
+                  </div>
+
+                  <div className="bg-gray-50 rounded flex items-center justify-center">
+                    <img
+                      src={image3}
+                      alt="Image 3"
                       className="w-full h-auto max-h-[260px] object-contain"
                     />
                   </div>

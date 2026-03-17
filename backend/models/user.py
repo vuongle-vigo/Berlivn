@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS users (
   direct_phone TEXT NOT NULL,
   mobile_phone TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user',
-  is_active INTEGER DEFAULT 1,
-  daily_search_limit INTEGER DEFAULT 20,
-  daily_search_remaining INTEGER DEFAULT 20,
+  is_active INTEGER DEFAULT 0,
+  daily_search_limit INTEGER DEFAULT 3,
+  daily_search_remaining INTEGER DEFAULT 3,
   last_search_date TEXT,
   last_login_at TEXT,
   created_at TEXT DEFAULT (datetime('now')),
@@ -68,7 +68,8 @@ def create_user(
 	activities_other: Optional[str] = None,
 	country: str = "Vietnam",
 	role: str = "user",
-	daily_search_limit: int = 20
+	is_active: bool = False,
+	daily_search_limit: int = 3
 ) -> str:
 	"""Chèn user mới, trả về id (UUID)."""
 	user_id = str(uuid.uuid4())
@@ -77,14 +78,14 @@ def create_user(
 			id, email, password_hash, company_name, registration_number, activities, employee_count, 
 			company_phone, first_name, last_name, job_position, professional_address, 
 			postal_code, city, direct_phone, mobile_phone, 
-			activities_other, country, role, daily_search_limit, daily_search_remaining
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+			activities_other, country, role, is_active, daily_search_limit, daily_search_remaining
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 	"""
 	params = (
 		user_id, email, password_hash, company_name, registration_number, activities, employee_count,
 		company_phone, first_name, last_name, job_position, professional_address,
 		postal_code, city, direct_phone, mobile_phone,
-		activities_other, country, role, daily_search_limit, daily_search_limit
+		activities_other, country, role, is_active, daily_search_limit, daily_search_limit
 	)
 	db.execute(sql, params, commit=True)
 	return user_id

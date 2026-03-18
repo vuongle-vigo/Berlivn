@@ -96,12 +96,14 @@ async def get_components_list(component_id: str, nbphase: int):
 @router.get("/getImage")
 async def get_image(path: str):
     file_path = path.lstrip("/")
+    # Remove query params if present (for cache busting)
+    file_path = file_path.split("?")[0]
     absolute_path = file_path if file_path.startswith("/") else file_path
     if not absolute_path:
         raise HTTPException(status_code=404, detail="Image not found")
     if not __import__("os").path.exists(absolute_path):
         raise HTTPException(status_code=404, detail="Image not found")
-    return FileResponse(absolute_path)
+    return FileResponse(absolute_path, headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
 @router.post("/uploadImages")
 async def upload_images(img1: UploadFile = File(None), img2: UploadFile = File(None), img3: UploadFile = File(None)):
@@ -120,9 +122,10 @@ async def delete_image(payload: ImagePath):
 @router.get("/getFile")
 async def get_file(path: str):
     file_path = path.lstrip("/")
+    file_path = file_path.split("?")[0]
     if not __import__("os").path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path)
+    return FileResponse(file_path, headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
 @router.post("/uploadFiles")
 async def upload_files(doc: UploadFile = File(None), two_d: UploadFile = File(None), three_d: UploadFile = File(None)):

@@ -78,8 +78,9 @@ export async function queryBusbar(payload: Record<string, any>) {
  * Fetch image blob from backend getImage endpoint for a given relative path.
  * Returns { ok, status, blob } where blob is a Blob when ok===true.
  */
-export async function getImageBlobByPath(path: string) {
-  const url = `${API_PREFIX}/getImage?path=${encodeURIComponent(path)}`;
+export async function getImageBlobByPath(path: string, preventCache: boolean = true) {
+  const cacheParam = preventCache ? `&t=${Date.now()}` : '';
+  const url = `${API_PREFIX}/getImage?path=${encodeURIComponent(path)}${cacheParam}`;
   try {
     const res = await fetch(url);
     if (!res.ok) return { ok: false, status: res.status, blob: null };
@@ -97,8 +98,9 @@ export function getFileLink(filePath: string) {
   return `${API_PREFIX}/getFile?path=${encodeURIComponent(filePath)}`;
 }
 
-export async function getFileBlobByPath(path: string) {
-  const url = `${API_PREFIX}/getFile?path=${encodeURIComponent(path)}`;
+export async function getFileBlobByPath(path: string, preventCache: boolean = true) {
+  const cacheParam = preventCache ? `&t=${Date.now()}` : '';
+  const url = `${API_PREFIX}/getFile?path=${encodeURIComponent(path)}${cacheParam}`;
   try {
     const res = await fetch(url);
     if (!res.ok) return { ok: false, status: res.status, blob: null };
